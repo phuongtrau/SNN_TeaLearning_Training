@@ -1,6 +1,6 @@
-from .packet import Packet
-from .neuron import Neuron
-from .core import Core
+from packet import Packet
+from neuron import Neuron
+from core import Core
 
 import json
 import numpy as np

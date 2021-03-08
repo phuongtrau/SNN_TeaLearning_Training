@@ -68,7 +68,7 @@ model.compile(loss='categorical_crossentropy',
 
 model.fit(x_train, y_train,
           batch_size=128,
-          epochs=1,
+          epochs=100,
           verbose=1,
           validation_split=0.2)
 
@@ -77,28 +77,29 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-cores_sim = create_cores(model, len(model.layers), neuron_reset_type=0) 
+cores_sim = create_cores(model, 5 ,neuron_reset_type=0) 
 
+from output_bus import OutputBus
+from serialization import save as sim_save
 # from rancutils.teaconversion import create_cores, create_packets, Packet
-# from rancutils.output_bus import OutputBus
-# from rancutils.serialization import save as sim_save
+# 
 
-# x_test_flat = x_test.reshape((10000, 784))
-# partitioned_packets = []
+x_test_flat = x_test.reshape((10000, 784))
+partitioned_packets = []
 
 # # Use absolute/hard reset by specifying neuron_reset_type=0
 # cores_sim = create_cores(model, 2, neuron_reset_type=0) 
 # # Partition the packets into groups as they will be fed into each of the input cores
-# partitioned_packets.append(x_test_flat[:num_test_samples, :256])
-# partitioned_packets.append(x_test_flat[:num_test_samples, 176:432])
-# partitioned_packets.append(x_test_flat[:num_test_samples, 352:608])
-# partitioned_packets.append(x_test_flat[:num_test_samples, 528:])
-# packets_sim = create_packets(partitioned_packets)
-# output_bus_sim = OutputBus((0, 2), num_outputs=250)
+partitioned_packets.append(x_test_flat[:, :256])
+partitioned_packets.append(x_test_flat[:, 176:432])
+partitioned_packets.append(x_test_flat[:, 352:608])
+partitioned_packets.append(x_test_flat[:, 528:])
+packets_sim = create_packets(partitioned_packets)
+output_bus_sim = OutputBus((0, 2), num_outputs=250)
 
-# # This file can then be used as an input json to the RANC Simulator through the "input file" argument.
-# sim_save("mnist_config.json", cores_sim, packets_sim, output_bus_sim, indent=2)
-# # Additionally, output the tensorflow predictions and correct labels for later cross validation
+# This file can then be used as an input json to the RANC Simulator through the "input file" argument.
+sim_save("mnist_config.json", cores_sim, packets_sim, output_bus_sim, indent=2)
+# Additionally, output the tensorflow predictions and correct labels for later cross validation
 # np.save("mnist_tf_preds.txt", test_predictions)
 # np.save("mnist_correct_preds.txt", y_test)
 
