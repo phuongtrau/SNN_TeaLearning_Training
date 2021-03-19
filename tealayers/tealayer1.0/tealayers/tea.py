@@ -200,9 +200,9 @@ class Tea(Layer):
                         )  
                 # Multiply connections with weights
                 # if static_weights is None:
-                weighted_connections = connections * self.static_weights
+            weighted_connections = connections * self.static_weights
             # else:
-                # weighted_connections = connections * static_weights
+            #     weighted_connections = connections * static_weights
             # Dot input with weighted connections
             output = K.dot(x, weighted_connections)
             # Add biases if they're being used
