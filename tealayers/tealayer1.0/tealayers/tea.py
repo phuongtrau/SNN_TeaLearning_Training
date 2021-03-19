@@ -162,6 +162,14 @@ class Tea(Layer):
                 initializer=self.connection_initializer,
                 regularizer=self.connection_regularizer,
                 constraint=self.connection_constraint)
+        else:
+            self.connection_initializer = initializers.Constant(self.connections)
+            self.connections = self.add_weight(
+                name='connections',
+                shape=shape,
+                initializer=self.connection_initializer,
+                regularizer=self.connection_regularizer,
+                constraint=self.connection_constraint)
         if self.use_bias:
             self.biases = self.add_weight(
                 name='biases',
