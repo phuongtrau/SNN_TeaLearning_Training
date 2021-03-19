@@ -52,6 +52,7 @@ class Tea(Layer):
                  connection_initializer=None,
                  connection_regularizer=None,
                  connection_constraint=None,
+                 init_connection = None,
                  round_input=True,
                  round_connections=True,
                  clip_connections=True,
@@ -117,17 +118,20 @@ class Tea(Layer):
         self.units = units
         self.activation = activations.get(activation)
         self.use_bias = use_bias
-        if connection_initializer:
+        if connection_initializer is not None:
             self.connection_initializer = connection_initializer
         else:
             self.connection_initializer = initializers.TruncatedNormal(mean=0.5)
-        if weight_initializer:
+            # print(self.connection_initializer)
+        if weight_initializer is not None:
             self.weight_initializer = weight_initializer
         else:
             self.weight_initializer = tea_weight_initializer
+            # print(connection_initializer.shape)
         self.bias_initializer = bias_initializer
         self.connection_regularizer = regularizers.get(connection_regularizer)
         self.connection_constraint = constraints.get(connection_constraint)
+        
         self.input_width = None
         self.round_input = round_input
         self.round_connections = round_connections
@@ -137,10 +141,13 @@ class Tea(Layer):
             constrain_outputs_after_trianing
         # Needs to be set to `True` to use the `K.in_train_phase` function.
         self.uses_learning_phase = True
+
+        self.connections = init_connection
+        
         super(Tea, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        print(input_shape)
+        # print(input_shape)
         assert len(input_shape) >= 2
         shape = (input_shape[-1], self.units)
         self.static_weights = self.add_weight(
@@ -148,12 +155,13 @@ class Tea(Layer):
             shape=shape,
             initializer=self.weight_initializer,
             trainable=False)
-        self.connections = self.add_weight(
-            name='connections',
-            shape=shape,
-            initializer=self.connection_initializer,
-            regularizer=self.connection_regularizer,
-            constraint=self.connection_constraint)
+        if self.connections is None:
+            self.connections = self.add_weight(
+                name='connections',
+                shape=shape,
+                initializer=self.connection_initializer,
+                regularizer=self.connection_regularizer,
+                constraint=self.connection_constraint)
         if self.use_bias:
             self.biases = self.add_weight(
                 name='biases',
@@ -173,7 +181,9 @@ class Tea(Layer):
                         tf.round(x)
                         )
             # Constrain connections
+            
             connections = self.connections
+            # print(connections.shape)
             if self.round_connections:
                 connections = tf.round(connections)
             else:
@@ -187,9 +197,12 @@ class Tea(Layer):
                 connections = K.in_train_phase(
                         connections,
                         K.clip(connections, 0, 1)
-                        )
-            # Multiply connections with weights
-            weighted_connections = connections * self.static_weights
+                        )  
+                # Multiply connections with weights
+                # if static_weights is None:
+                weighted_connections = connections * self.static_weights
+            # else:
+                # weighted_connections = connections * static_weights
             # Dot input with weighted connections
             output = K.dot(x, weighted_connections)
             # Add biases if they're being used

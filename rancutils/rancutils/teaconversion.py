@@ -22,6 +22,7 @@ def get_connections_and_biases(model, num_layers):
         elif 'bias' in data_type:
             biases[layer_id].append(weight)
     # print(np.array(connections,dtype=float).shape,np.array(biases,dtype=float).shape)
+
     return connections, biases
 
 
@@ -34,9 +35,9 @@ def create_cores(
     connections, biases = get_connections_and_biases(model, num_layers)
 
     core_shapes = [[core.shape for core in layer] for layer in connections]
-    print(core_shapes)
+    # print(core_shapes)
     layer_sizes = [len(layer) for layer in connections]
-    print(layer_sizes)
+    # print(layer_sizes)
 
     # If core coordinates are not specified, each layer is given a row
     if core_coordinates is None:
@@ -46,7 +47,7 @@ def create_cores(
             for j in range(len(layer)):
                 layer_coordinates.append((j, i))
             core_coordinates.append(layer_coordinates)
-        print(core_coordinates)
+        # print(core_coordinates)
     # Define core objects
     cores = []
     for layer_coordinates, layer_shapes, layer_size, connections_layer, \
@@ -62,15 +63,16 @@ def create_cores(
             # FIXME: Simulator assumes connections are formatted as
             # (neurons, axons). Probably not intuitive
             connections_constrained = np.round(connections_core)
+            # print(connections_constrained)
             connections_constrained = np.clip(connections_constrained, 0, 1)
             layer_cores.append(
-                Core(axons=[0, 1]*int(core_shape[0]/2),
-                     neurons=None,
-                     connections=connections_constrained.T.astype(
-                         int
-                     ).tolist(),
-                     coordinates=single_core_coordinates)
-            )
+                        Core(
+                            axons=[0, 1]*int(core_shape[0]/2),
+                            neurons=None,
+                            connections=connections_constrained.T.astype(int).tolist(),
+                            coordinates=single_core_coordinates
+                            )
+                    )
         cores.append(layer_cores)
 
     # Define neuron objects
