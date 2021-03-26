@@ -20,7 +20,7 @@ def get_connections_and_biases(model, num_layers):
         # print(layer_id)
         # print(data_type)
         if layer_id >= num_layers:
-            layer_id = layer_id -num_layers
+            layer_id = layer_id - num_layers
         #     if 'connection' in data_type:
         #         connections[layer_id].append(weight)
         #     elif 'bias' in data_type:
