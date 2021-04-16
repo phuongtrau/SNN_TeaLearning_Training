@@ -6,16 +6,18 @@ import functools
 import math
 
 import tensorflow as tf
+from tensorflow import squeeze
 import numpy as np
 from keras import backend as K
 from keras import Model
 from keras.engine.topology import Layer
 from keras import initializers
 from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, concatenate
-from keras.datasets import mnist,fashion_mnist
-from keras.optimizers import Adam
+from keras.layers import Dropout, Flatten, Activation, Input, Lambda, AveragePooling1D, Reshape, Concatenate, MaxPooling1D,Average 
+from keras.datasets import fashion_mnist
+from keras.optimizers import Adam,SGD
 from keras.utils import to_categorical
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from tea import Tea
 from additivepooling import AdditivePooling
@@ -26,134 +28,148 @@ sys.path.append("/home/phuongdh/Documents/SNN_TeaLearning_Training/rancutils/ran
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 
+datagen = ImageDataGenerator(
+        rotation_range=20,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        shear_range=0.5,
+        zoom_range=(0.9, 1.1),
+        horizontal_flip=False,
+        vertical_flip=False, 
+        fill_mode='constant',
+        cval=0
+)
+
+# def get_random_sample(number_of_samples=10):
+#     x = []
+#     y = []
+#     for category_number in range(0,10):
+#         # get all samples of a category
+#         train_data_category = train_data[train_labels==category_number]
+#         # pick a number of random samples from the category
+#         train_data_category = train_data_category[np.random.randint(train_data_category.shape[0], 
+#                                                                     size=number_of_samples), :]
+#         x.extend(train_data_category)
+#         y.append([category_number]*number_of_samples)
+    
+#     return np.asarray(x).reshape(-1, 28, 28, 1), y
+
 # Load MNIST data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
-x_train /= 255
-x_test /= 255
 
-# save old labels for later
-y_test_not = y_test
-
-# convert class vectors to binary class matrices
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
+x_train =  x_train / 255
+
+x_test  = x_test / 255
+x_train = datagen.flow(x_train[:,:,:,np.newaxis],y_train)
+
+
+
+# save old labels for later
+# y_test_not = y_test
+
+# convert class vectors to binary class matrices
+
 
 # Define model (use functional API to follow fan-in and 
 # fan-out constraints)
 inputs = Input(shape=(28, 28,))
-flattened_inputs = Flatten()(inputs)
 
+flattened_inputs = Flatten()(inputs)
 # Send input into 4 different cores (256 axons each)
 x0 = Lambda(lambda x : x[:,:256])(flattened_inputs)
-x1 = Lambda(lambda x : x[:,48:304])(flattened_inputs)
-x2 = Lambda(lambda x : x[:,96:352])(flattened_inputs)
-x3 = Lambda(lambda x : x[:,144:400])(flattened_inputs)
+x0_res = Reshape((256,1)) (x0)
+x0_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x0_res)
+x0_res  = Lambda(lambda x : squeeze(x,2))(x0_res)
+x1 = Lambda(lambda x : x[:,176:432])(flattened_inputs)
+x1_res = Reshape((256,1)) (x1)
+x1_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x1_res)
+x1_res  = Lambda(lambda x : squeeze(x,2))(x1_res)
+x2 = Lambda(lambda x : x[:,352:608])(flattened_inputs)
+x2_res = Reshape((256,1)) (x2)
+x2_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x2_res)
+x2_res  = Lambda(lambda x : squeeze(x,2))(x2_res)
+x3 = Lambda(lambda x : x[:,528:])(flattened_inputs)
+x3_res = Reshape((256,1)) (x3)
+x3_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x3_res)
+x3_res  = Lambda(lambda x : squeeze(x,2))(x3_res)
 
-x4 = Lambda(lambda x : x[:,192:448])(flattened_inputs)
-x5 = Lambda(lambda x : x[:,240:496])(flattened_inputs)
-x6 = Lambda(lambda x : x[:,288:544])(flattened_inputs)
-x7 = Lambda(lambda x : x[:,336:592])(flattened_inputs)
+x0 = Tea(128)(x0)
+x0 = Average()([x0,x0_res])
+x1 = Tea(128)(x1)
+x1 = Average()([x1,x1_res])
+x2 = Tea(128)(x2)
+x2 = Average()([x2,x2_res])
+x3 = Tea(128)(x3)
+x3 = Average()([x3,x3_res])
+# print(x0,x1,x2,x3)
+# Concatenate output of first layer to send into next
 
-x8 = Lambda(lambda x : x[:,384:640])(flattened_inputs)
-x9 = Lambda(lambda x : x[:,432:688])(flattened_inputs)
-x10 = Lambda(lambda x : x[:,480:736])(flattened_inputs)
-x11 = Lambda(lambda x : x[:,528:784])(flattened_inputs)
+x2_1 = Concatenate(axis=1)([x0,x1])
+x2_1 = Tea(128)(x2_1)
+x2_1 = Average()([x2_1,x0,x1])
 
-# x12 = Lambda(lambda x : x[:,560:816])(flattened_inputs)
-# x13 = Lambda(lambda x : x[:,176:432])(flattened_inputs)
-# x14 = Lambda(lambda x : x[:,352:608])(flattened_inputs)
-# x15 = Lambda(lambda x : x[:,528:])(flattened_inputs)
+x2_2 = Concatenate(axis=1)([x2,x3])
+x2_2 = Tea(128)(x2_2)
+x2_2 = Average()([x2_2,x2,x3])
 
-x0  = Tea(64)(x0)
-x1  = Tea(64)(x1)
-x2  = Tea(64)(x2)
-x3  = Tea(64)(x3)
+x2_3 = Concatenate(axis=1)([x0,x2])
+x2_3 = Tea(128)(x2_3)
+x2_3 = Average()([x2_3,x0,x2])
 
-x4  = Tea(64)(x4)
-x5  = Tea(64)(x5)
-x6  = Tea(64)(x6)
-x7  = Tea(64)(x7)
+x2_4 = Concatenate(axis=1)([x1,x3])
+x2_4 = Tea(128)(x2_4)
+x2_4 = Average()([x2_4,x3,x1])
 
-x8  = Tea(64)(x8)
-x9  = Tea(64)(x9)
-x10 = Tea(64)(x10)
-x11 = Tea(64)(x11)
+x2_5 = Concatenate(axis=1)([x0,x3])
+x2_5 = Tea(128)(x2_5)
+x2_5 = Average()([x2_5,x0,x3])
+
+x2_6 = Concatenate(axis=1)([x2,x1])
+x2_6 = Tea(128)(x2_6)
+x2_6 = Average()([x2_6,x2,x1])
+
+x3_1 = Concatenate(axis=1)([x2_1,x2_2])
+x3_1 = Tea(128)(x3_1)
+x3_1 = Average()([x3_1,x2_1,x2_2])
+
+x3_2 = Concatenate(axis=1)([x2_3,x2_4])
+x3_2 = Tea(128)(x3_2)
+x3_2 = Average()([x3_2,x2_3,x2_4])
+
+x3_3 = Concatenate(axis=1)([x2_5,x2_6])
+x3_3 = Tea(128)(x3_3)
+x3_3 = Average()([x3_3,x2_5,x2_6])
+
+x4_1 = Concatenate(axis=1)([x3_1,x3_2])
+x4_1 = Tea(250)(x4_1)
+x4_2 = Concatenate(axis=1)([x3_1,x3_3])
+x4_2 = Tea(250)(x4_2)
+x4_3 = Concatenate(axis=1)([x3_2,x3_3])
+x4_3 = Tea(250)(x4_3)
 
 
-# # Concatenate output of first layer to send into next
-
-# x1_1 = concatenate([x0, x1])
-
-# x1_2 = concatenate([x2, x3])
-
-# x1_3 = concatenate([x4, x5])
-
-# x1_4 = concatenate([x6, x7])
-
-# x1_5 = concatenate([x8, x9])
-
-# x1_6 = concatenate([x10, x11])
-
-# x1_1 = Tea(64)(x1_1)
-
-# x1_2 = Tea(64)(x1_2)
-
-# x1_3 = Tea(64)(x1_3)
-
-# x1_4 = Tea(64)(x1_4)
-
-# x1_5 = Tea(64)(x1_5)
-
-# x1_6 = Tea(64)(x1_6)
-
-# x2_1 = concatenate([x1_1, x1_2, x1_3, x1_4])
-
-# x2_2 = concatenate([x1_3, x1_4, x1_5, x1_6])
-
-# x2_1 = Tea(250)(x2_1)
-
-# x2_2 = Tea(250)(x2_2)
-
-# x3_1 = concatenate([x2_1, x2_2])
-
-# # x3_1 = Tea(250)(x3_1)
-
-# x3_1 = AdditivePooling(10)(x3_1)
-
-x1_1 = concatenate([x0, x1, x2, x3])
-
-x1_2 = concatenate([x4, x5, x6, x7])
-
-x1_3 = concatenate([x8, x9, x10, x11])
-
-x1_1 = Tea(85)(x1_1)
-
-x1_2 = Tea(85)(x1_2)
-
-x1_3 = Tea(85)(x1_3)
-
-x2_1 = concatenate([x1_1, x1_2, x1_3])
-
-x2_1 = Tea(250)(x2_1)
+x_out = Concatenate(axis=1)([x4_1,x4_2,x4_3]) 
+# print(x_out)
+# x_out = Reshape((750,1)) (x_out)
+# x_out  = AveragePooling1D(pool_size=3, strides=3, padding="valid", data_format="channels_last")(x_out)
+# x_out  = Lambda(lambda x : squeeze(x,2))(x_out)
 
 # Pool spikes and output neurons into 10 classes.
-x2_1 = AdditivePooling(10)(x2_1)
+x_out = AdditivePooling(10)(x_out)
 
-predictions = Activation('softmax')(x2_1)
+predictions = Activation('softmax')(x_out)
 
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
+              optimizer=Adam(lr= 0.01,beta_1 = 0.99,beta_2 = 0.9999,epsilon = 1e-05,amsgrad = True),
               metrics=['accuracy'])
 
-model.fit(x_train, y_train,
-          batch_size=128,
-          epochs=50,
-          verbose=1,
-          validation_split=0.2)
+model.fit(x_train, y_train,batch_size=128,epochs=50,verbose=1,validation_split=0.2)
 # model.save("mnist_12_3_1.h5")
 score = model.evaluate(x_test, y_test, verbose=0)
 

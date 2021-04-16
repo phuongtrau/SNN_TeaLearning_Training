@@ -130,14 +130,14 @@ print('Test loss:', score_1[0])
 print('Test accuracy:', score_1[1])
 
 weights_1 , biases_1 = get_connections_and_biases(model_1,5)
-# print(biases)
+# print(biases_1)
 # print(weights_1)
 # connections_1 = []
 # bias_retrain_1 = []
-# # for weight_1 in weights_1:
-# #     connections_1.append(np.clip(np.round(weight_1), 0, 1))
-# # for i in range(len(connections_1)) :
-# #     connections_1[i]=np.reshape(connections_1[i],(256,-1))
+# for weight_1 in weights_1:
+#     connections_1.append(np.clip(np.round(weight_1), 0, 1))
+# for i in range(len(connections_1)) :
+#     connections_1[i]=np.reshape(connections_1[i],(256,-1))
 
 # for bias_1 in biases_1:
 #     bias_retrain_1.append(np.round(bias_1))
@@ -147,10 +147,10 @@ weights_1 , biases_1 = get_connections_and_biases(model_1,5)
 #     bias_retrain_1[i]=np.reshape(bias_retrain_1[i],(-1,1))
 #     np.savetxt("bais_{}.txt".format(i+1),bias_retrain_1[i].astype(int),fmt="%d")
 
-# for e in connections:
-#     # print(e)
-#     print(np.sum(np.sum(e)))
-#     print(e.shape)
+# # for e in connections:
+# #     # print(e)
+# #     print(np.sum(np.sum(e)))
+# #     print(e.shape)
 # i =0
 # for e in connections_1:
 #     # print(e)
@@ -167,8 +167,9 @@ weights_1 , biases_1 = get_connections_and_biases(model_1,5)
 #     # print(e.shape)
 #     i+=1
 
-# from output_bus import OutputBus
-# from serialization import save as sim_save
+from output_bus import OutputBus
+from serialization import save as sim_save
+from emulation import write_cores
 # # from rancutils.teaconversion import create_cores, create_packets, Packet
 # # 
 
@@ -176,8 +177,9 @@ weights_1 , biases_1 = get_connections_and_biases(model_1,5)
 # partitioned_packets = []
 
 # # # Use absolute/hard reset by specifying neuron_reset_type=0
-# cores_sim = create_cores(model_1, 5, neuron_reset_type=0) 
+cores_sim = create_cores(model_1, 5,neuron_reset_type=0 ) 
 # # # Partition the packets into groups as they will be fed into each of the input cores
+write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem")
 # partitioned_packets.append(x_test_flat[:, :256])
 # partitioned_packets.append(x_test_flat[:, 176:432])
 # partitioned_packets.append(x_test_flat[:, 352:608])
@@ -188,7 +190,7 @@ weights_1 , biases_1 = get_connections_and_biases(model_1,5)
 # # This file can then be used as an input json to the RANC Simulator through the "input file" argument.
 # sim_save("mnist_config.json", cores_sim, packets_sim, output_bus_sim, indent=2)
 # # Additionally, output the tensorflow predictions and correct labels for later cross validation
-# # np.save("mnist_tf_preds.txt", test_predictions)
-# # np.save("mnist_correct_preds.txt", y_test)
+# np.save("mnist_tf_preds.txt", test_predictions)
+# np.save("mnist_correct_preds.txt", y_test)
 
 # # # TODO: Add usage example for outputting to emulation via rancutils.emulation.write_cores, et
