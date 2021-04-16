@@ -112,7 +112,6 @@ red_5 = Lambda(lambda x : x[:,8:24,8:24])(red)
 green_5 = Lambda(lambda x : x[:,8:24,8:24])(green)
 blue_5 = Lambda(lambda x : x[:,8:24,8:24])(blue)
 
-### PUSH IN CORES ###
 
 
 
