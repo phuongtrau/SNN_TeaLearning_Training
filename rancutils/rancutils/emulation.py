@@ -1,6 +1,6 @@
 # Utlities for the RANC FPGA Emulation
-from .neuron import Neuron
-from .core import Core
+from neuron import Neuron
+from core import Core
 
 import os
 import struct
@@ -11,7 +11,7 @@ import numpy as np
 
 
 def write_cores(cores,
-                max_xy=(64, 64),
+                max_xy=(1, 5),
                 potential_width=9,
                 leak_width=9,
                 weight_width=9,
@@ -27,7 +27,7 @@ def write_cores(cores,
                 max_file_number=100,
                 verbose=False):
 
-    assert len(str(max_file_number)) >= len(str(max_xy[0]*max_xy[1]))
+    # assert len(str(max_file_number)) >= len(str(max_xy[0]*max_xy[1]))
 
     # Define default cores for those that are not specified
     default_cores = []
@@ -56,10 +56,7 @@ def write_cores(cores,
         if verbose:
             print('writing csram and tc memory: core', core_num + 1, '/',
                   max_xy[0]*max_xy[1], end='\r')
-        with open(os.path.join(output_path, 'csram_{}.mem'.format(
-            str(core.coordinates[0] + max_xy[0] * core.coordinates[1]).zfill(
-                len(str(max_file_number))
-            )
+        with open(os.path.join(output_path, 'csram_{}.mem'.format(str(core.coordinates[0] + max_xy[0] * core.coordinates[1]).zfill(len(str(max_file_number)))
         )), 'w+') as csram_file:
             for neuron_num in range(num_neurons):
                 # If there is a neuron defined
