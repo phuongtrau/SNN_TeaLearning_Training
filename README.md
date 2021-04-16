@@ -64,8 +64,6 @@ This visualizes this network distinguishes among 0, 1 and 2.
 
 * Python 3
 * NumPy
-* scikit-learn
 
-## License
 
-MIT License
+

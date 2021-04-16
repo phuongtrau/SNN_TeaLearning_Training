@@ -28,22 +28,25 @@ class SpikingNetwork:
         if draw_spike:
             self.draw_spike = DrawSpike(network=self)
 
+    # add a layer to the network
     def add(self, n, kappa=None):
-        self.num_neurons.append(n)
-        if len(self.num_neurons) == 1:
+        self.num_neurons.append(n) # the last element is the number of neurons in the PRESENT layer
+        if len(self.num_neurons) == 1: # if the network has just only an input layer
             if kappa is not None:
                 print('This kappa is ignored.')
             return
-
+        # the network has at least 1 hidden layer
         self.v_mps.append(np.zeros((n, 1)))
 
         if kappa is None:
-            kappa = 0
-        self.kappas.append(kappa)
+            kappa = 0 # no lateral inhibitory connections
+        self.kappas.append(kappa) # lateral inhibitory connections
+        
+        prev_n = self.num_neurons[len(self.num_neurons) - 2] # the number of neurons in the PREVIOUS layer
+        root_3_per_m = np.sqrt(3 / prev_n) # The number of neurons in the previous layer is the number of 
+        # synapses of a neuron in the present layer
 
-        prev_n = self.num_neurons[len(self.num_neurons) - 2]
-        root_3_per_m = np.sqrt(3 / prev_n)
-
+        # weight and threshold initialization
         self.weights.append(np.random.uniform(-root_3_per_m, root_3_per_m, (n, prev_n)))
         self.thresholds.append(np.ones((n, 1)) * SpikingNetwork.ALPHA * root_3_per_m)
 
@@ -56,7 +59,7 @@ class SpikingNetwork:
         import time
         start_time = time.time()
         for t in range(exposed_time):
-            input_spike = x
+            input_spike = x # shape x: (784, #test examples)
             for i, (v_mp, spike, weight, threshold, x_k, a_i, kappa) in enumerate(zip(
                     self.v_mps,
                     self.spikes,
@@ -70,12 +73,14 @@ class SpikingNetwork:
                 #    break
                 spike.append(input_spike)
 
-                x_k = SpikingNetwork._calc_x_k(spike, t)
+                x_k = SpikingNetwork._calc_x_k(spike, t) # Need to check t_p < t
                 if i > 0:
                     self.a_is[i - 1] = x_k
 
                 tmp_x_k = x_k.copy()
                 tmp_x_k[~input_spike] = 0
+                # threshold, a_i are vectors. Others are constants
+                # elment-wise multiplication
                 lateral_inhibition = SpikingNetwork.SIGMA * threshold * kappa * a_i
                 lateral_inhibition = lateral_inhibition.sum(axis=0) * np.ones(a_i.shape) - lateral_inhibition
                 v_mp = weight @ tmp_x_k - threshold * a_i + lateral_inhibition
@@ -215,6 +220,9 @@ class SpikingNetwork:
 
     @classmethod
     def _calc_x_k(cls, spike, t):
+        # If fired, then compute the sum. Otherwise, do nothing
+        # Imagine a 'spike' is like a list [False,True,True,False,...], True is an active neuron, (784, 1)
+        # Only considering active neurons
         return sum([np.exp((t_p - t) / cls.TAU_MP) * fire for t_p, fire in enumerate(spike)])
 
     @staticmethod
