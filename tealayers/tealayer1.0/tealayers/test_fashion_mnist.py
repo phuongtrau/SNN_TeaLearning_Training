@@ -28,43 +28,39 @@ sys.path.append("/home/phuongdh/Documents/SNN_TeaLearning_Training/rancutils/ran
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 
-datagen = ImageDataGenerator(
-        rotation_range=20,
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        shear_range=0.5,
-        zoom_range=(0.9, 1.1),
-        horizontal_flip=False,
-        vertical_flip=False, 
-        fill_mode='constant',
-        cval=0
-)
-
-# def get_random_sample(number_of_samples=10):
-#     x = []
-#     y = []
-#     for category_number in range(0,10):
-#         # get all samples of a category
-#         train_data_category = train_data[train_labels==category_number]
-#         # pick a number of random samples from the category
-#         train_data_category = train_data_category[np.random.randint(train_data_category.shape[0], 
-#                                                                     size=number_of_samples), :]
-#         x.extend(train_data_category)
-#         y.append([category_number]*number_of_samples)
-    
-#     return np.asarray(x).reshape(-1, 28, 28, 1), y
-
-# Load MNIST data
+# Load FASHION_MNIST data
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
 
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
-x_train =  x_train / 255
 
-x_test  = x_test / 255
-x_train = datagen.flow(x_train[:,:,:,np.newaxis],y_train)
+x_train_1 =  x_train / 255
+
+x_test_1  = x_test / 255
+
+x_train_2 = x_train
+
+x_test_2 = x_test
+
+for ele in x_train_2:
+        for i in range(28):
+                for j in range(28):
+                        if ele[i][j] <=128:
+                                ele[i][j] /= 128
+                        else :
+                                ele[i][j] = (ele[i][j]-128)/128
+
+for ele in x_test_2:
+        for i in range(28):
+                for j in range(28):
+                        if ele[i][j] <=128:
+                                ele[i][j] /= 128
+                        else :
+                                ele[i][j] = (ele[i][j]-128)/128
+
+# x_train = datagen.flow(x_train[:,:,:,np.newaxis],y_train)
 
 
 
@@ -154,9 +150,9 @@ x4_3 = Tea(250)(x4_3)
 
 x_out = Concatenate(axis=1)([x4_1,x4_2,x4_3]) 
 # print(x_out)
-# x_out = Reshape((750,1)) (x_out)
-# x_out  = AveragePooling1D(pool_size=3, strides=3, padding="valid", data_format="channels_last")(x_out)
-# x_out  = Lambda(lambda x : squeeze(x,2))(x_out)
+x_out = Reshape((750,1)) (x_out)
+x_out  = AveragePooling1D(pool_size=3, strides=3, padding="valid", data_format="channels_last")(x_out)
+x_out  = Lambda(lambda x : squeeze(x,2))(x_out)
 
 # Pool spikes and output neurons into 10 classes.
 x_out = AdditivePooling(10)(x_out)
@@ -166,7 +162,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr= 0.01,beta_1 = 0.99,beta_2 = 0.9999,epsilon = 1e-05,amsgrad = True),
+              optimizer=Adam(lr= 0.01,beta_1 = 0.99,beta_2 = 0.9999,epsilon = 1e-07,amsgrad = True),
               metrics=['accuracy'])
 
 model.fit(x_train, y_train,batch_size=128,epochs=50,verbose=1,validation_split=0.2)
