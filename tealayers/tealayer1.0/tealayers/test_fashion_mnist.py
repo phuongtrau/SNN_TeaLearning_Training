@@ -23,7 +23,7 @@ from tea import Tea
 from additivepooling import AdditivePooling
 
 import sys
-sys.path.append("/home/phuongdh/Documents/SNN_TeaLearning_Training/rancutils/rancutils")
+sys.path.append("/home/hoangphuong/Documents/FPGA/SNN_TeaLearning_Training/rancutils/rancutils")
 
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
@@ -59,13 +59,35 @@ datagen = ImageDataGenerator(
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
 
+
+x_train_1 =  x_train / 255
+x_test_1  = x_test / 255
+
+x_train_2 = x_train
+x_test_2 = x_test
+for ele in x_train_2:
+        for i in range(28):
+                for j in range(28):
+                        if ele[i][j] <= 128:
+                                ele[i][j]= ele[i][j] / 128
+                        else:
+                                ele[i][j]=(ele[i][j]-128)/128 
+
+for ele in x_test_2:
+        for i in range(28):
+                for j in range(28):
+                        if ele[i][j] <= 128:
+                                ele[i][j]= ele[i][j] / 128
+                        else:
+                                ele[i][j]=(ele[i][j]-128)/128
+
+x_train = np.concatenate([x_train_1,x_train_2],axis=0)
+x_test = np.concatenate([x_test_1,x_test_2],axis=0)
+y_train = np.concatenate([y_train,y_train],axis=0)
+y_test = np.concatenate([y_test,y_test],axis=0)
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
-x_train =  x_train / 255
-
-x_test  = x_test / 255
-x_train = datagen.flow(x_train[:,:,:,np.newaxis],y_train)
-
+# x_train = datagen.flow(x_train[:,:,:,np.newaxis],y_train)
 
 
 # save old labels for later
@@ -84,14 +106,17 @@ x0 = Lambda(lambda x : x[:,:256])(flattened_inputs)
 x0_res = Reshape((256,1)) (x0)
 x0_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x0_res)
 x0_res  = Lambda(lambda x : squeeze(x,2))(x0_res)
+
 x1 = Lambda(lambda x : x[:,176:432])(flattened_inputs)
 x1_res = Reshape((256,1)) (x1)
 x1_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x1_res)
 x1_res  = Lambda(lambda x : squeeze(x,2))(x1_res)
+
 x2 = Lambda(lambda x : x[:,352:608])(flattened_inputs)
 x2_res = Reshape((256,1)) (x2)
 x2_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x2_res)
 x2_res  = Lambda(lambda x : squeeze(x,2))(x2_res)
+
 x3 = Lambda(lambda x : x[:,528:])(flattened_inputs)
 x3_res = Reshape((256,1)) (x3)
 x3_res  = AveragePooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x3_res)
@@ -99,10 +124,13 @@ x3_res  = Lambda(lambda x : squeeze(x,2))(x3_res)
 
 x0 = Tea(128)(x0)
 x0 = Average()([x0,x0_res])
+
 x1 = Tea(128)(x1)
 x1 = Average()([x1,x1_res])
+
 x2 = Tea(128)(x2)
 x2 = Average()([x2,x2_res])
+
 x3 = Tea(128)(x3)
 x3 = Average()([x3,x3_res])
 # print(x0,x1,x2,x3)
@@ -154,9 +182,9 @@ x4_3 = Tea(250)(x4_3)
 
 x_out = Concatenate(axis=1)([x4_1,x4_2,x4_3]) 
 # print(x_out)
-# x_out = Reshape((750,1)) (x_out)
-# x_out  = AveragePooling1D(pool_size=3, strides=3, padding="valid", data_format="channels_last")(x_out)
-# x_out  = Lambda(lambda x : squeeze(x,2))(x_out)
+x_out = Reshape((750,1)) (x_out)
+x_out  = AveragePooling1D(pool_size=3, strides=3, padding="valid", data_format="channels_last")(x_out)
+x_out  = Lambda(lambda x : squeeze(x,2))(x_out)
 
 # Pool spikes and output neurons into 10 classes.
 x_out = AdditivePooling(10)(x_out)
