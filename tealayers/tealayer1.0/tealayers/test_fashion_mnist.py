@@ -28,33 +28,7 @@ sys.path.append("/home/hoangphuong/Documents/FPGA/SNN_TeaLearning_Training/rancu
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 
-datagen = ImageDataGenerator(
-        rotation_range=20,
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        shear_range=0.5,
-        zoom_range=(0.9, 1.1),
-        horizontal_flip=False,
-        vertical_flip=False, 
-        fill_mode='constant',
-        cval=0
-)
-
-# def get_random_sample(number_of_samples=10):
-#     x = []
-#     y = []
-#     for category_number in range(0,10):
-#         # get all samples of a category
-#         train_data_category = train_data[train_labels==category_number]
-#         # pick a number of random samples from the category
-#         train_data_category = train_data_category[np.random.randint(train_data_category.shape[0], 
-#                                                                     size=number_of_samples), :]
-#         x.extend(train_data_category)
-#         y.append([category_number]*number_of_samples)
-    
-#     return np.asarray(x).reshape(-1, 28, 28, 1), y
-
-# Load MNIST data
+# Load FASHION_MNIST data
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
@@ -194,7 +168,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr= 0.01,beta_1 = 0.99,beta_2 = 0.9999,epsilon = 1e-05,amsgrad = True),
+              optimizer=Adam(lr= 0.01,beta_1 = 0.99,beta_2 = 0.9999,epsilon = 1e-07,amsgrad = True),
               metrics=['accuracy'])
 
 model.fit(x_train, y_train,batch_size=128,epochs=50,verbose=1,validation_split=0.2)
