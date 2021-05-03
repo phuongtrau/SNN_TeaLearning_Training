@@ -44,19 +44,19 @@ y_test = to_categorical(y_test, 10)
 # fan-out constraints)
 inputs = Input(shape=(28, 28,))
 flattened_inputs = Flatten()(inputs)
-# Send input into 4 different cores (256 axons each)
-x0 = Lambda(lambda x : x[:,:256])(flattened_inputs)
-x1 = Lambda(lambda x : x[:,176:432])(flattened_inputs)
-x2 = Lambda(lambda x : x[:,352:608])(flattened_inputs)
-x3 = Lambda(lambda x : x[:,528:])(flattened_inputs)
-x0 = Tea(64)(x0)
-x1 = Tea(64)(x1)
-x2 = Tea(64)(x2)
-x3 = Tea(64)(x3)
+# Send input into 2 different cores (512 axons each)
+x0 = Lambda(lambda x : x[:,:512])(flattened_inputs)
+x1 = Lambda(lambda x : x[:,91:603])(flattened_inputs)
+x2 = Lambda(lambda x : x[:,181:693])(flattened_inputs)
+x3 = Lambda(lambda x : x[:,272:])(flattened_inputs)
+x0 = Tea(128)(x0)
+x1 = Tea(128)(x1)
+x2 = Tea(128)(x2)
+x3 = Tea(128)(x3)
 # print(x0,x1,x2,x3)
 # Concatenate output of first layer to send into next
 x = concatenate([x0, x1, x2, x3])
-x = Tea(250)(x)
+x = Tea(510)(x)
 # Pool spikes and output neurons into 10 classes.
 x = AdditivePooling(10)(x)
 
@@ -90,23 +90,23 @@ connections = []
 for weight in weights:
     connections.append(np.clip(np.round(weight), 0, 1))
 for i in range(len(connections)) :
-    connections[i]=np.reshape(connections[i],(256,-1))
+    connections[i]=np.reshape(connections[i],(512,-1))
 
 inputs_1 = Input(shape=(28, 28,))
 flattened_inputs_1 = Flatten()(inputs_1)
 
-y0 = Lambda(lambda x : x[:,:256])(flattened_inputs_1)
-y1 = Lambda(lambda x : x[:,176:432])(flattened_inputs_1)
-y2 = Lambda(lambda x : x[:,352:608])(flattened_inputs_1)
-y3 = Lambda(lambda x : x[:,528:])(flattened_inputs_1)
-y0 = Tea(64,init_connection=connections[0])(y0)
-y1 = Tea(64,init_connection=connections[1])(y1)
-y2 = Tea(64,init_connection=connections[2])(y2)
-y3 = Tea(64,init_connection=connections[3])(y3)
+y0 = Lambda(lambda x : x[:,:512])(flattened_inputs_1)
+y1 = Lambda(lambda x : x[:,91:603])(flattened_inputs_1)
+y2 = Lambda(lambda x : x[:,181:693])(flattened_inputs_1)
+y3 = Lambda(lambda x : x[:,272:])(flattened_inputs_1)
+y0 = Tea(128,init_connection=connections[0])(y0)
+y1 = Tea(128,init_connection=connections[1])(y1)
+y2 = Tea(128,init_connection=connections[2])(y2)
+y3 = Tea(128,init_connection=connections[3])(y3)
 # print(y0,y1,y2,y3)
 # Concatenate output of first layer to send into next
 y = concatenate([y0, y1, y2, y3])
-y = Tea(250,init_connection=connections[4])(y)
+y = Tea(510,init_connection=connections[4])(y)
 # Pool spikes and output neurons into 10 classes.
 y = AdditivePooling(10)(y)
 
@@ -177,9 +177,9 @@ from emulation import write_cores
 # partitioned_packets = []
 
 # # # Use absolute/hard reset by specifying neuron_reset_type=0
-cores_sim = create_cores(model_1, 5,neuron_reset_type=0 ) 
+cores_sim = create_cores(model_1, 5,neuron_reset_type=0 ,num_neurons=512) 
 # # # Partition the packets into groups as they will be fed into each of the input cores
-write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem")
+write_cores(cores_sim,output_path="./output_mem",num_axons=512,num_neurons=512)
 # partitioned_packets.append(x_test_flat[:, :256])
 # partitioned_packets.append(x_test_flat[:, 176:432])
 # partitioned_packets.append(x_test_flat[:, 352:608])
