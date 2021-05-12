@@ -42,24 +42,6 @@ x_train =  x_train / 255
 
 x_test  = x_test / 255
 
-# for e in x_train:
-#     for i in range(28):
-#         for j in range(28):
-#             if e[i][j]>1:
-#                 e[i][j]=1
-
-# for e in x_test:
-#     for i in range(28):
-#         for j in range(28):
-#             if e[i][j]>1:
-#                 e[i][j]=1
-
-# Embedding data via tealayer 
-
-# inputs = Input(shape=(28, 28,))
-
-# flattened_inputs = Flatten()(inputs)
-
 # # save old labels for later
 # y_test_not = y_test
 
