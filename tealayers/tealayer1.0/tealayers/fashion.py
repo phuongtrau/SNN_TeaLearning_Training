@@ -117,6 +117,6 @@ class Fashion(Layer):
 
         x = Tea(510)(x)
 
-        # x = Average()([x_2,x_3,x_4,x])
+        x = Average()([x_2,x_3,x_4,x])
 
         return x
