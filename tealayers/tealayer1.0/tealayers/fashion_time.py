@@ -5,21 +5,23 @@ import operator
 import functools
 import math
 
-import tensorflow as tf
-from tensorflow import squeeze
-import numpy as np
-from keras import backend as K
-from keras import Model
-from keras.engine.topology import Layer
-from keras import initializers
-from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, AveragePooling1D, Reshape, Concatenate, MaxPooling1D,Average 
-from keras.datasets import fashion_mnist
-from keras.optimizers import Adam,SGD
-from keras.utils import to_categorical
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from numpy.core.fromnumeric import mean
 
-from tea import Tea
+import tensorflow as tf
+# from tensorflow import squeeze
+import numpy as np
+# from keras import backend as K
+from keras import Model
+# from keras.engine.topology import Layer
+# from keras import initializers
+# from keras.models import Sequential
+from keras.layers import Flatten, Activation, Input, Lambda,Average 
+from keras.datasets import fashion_mnist
+from keras.optimizers import Adam
+from keras.utils import to_categorical
+# from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# from tea import Tea
 from additivepooling import AdditivePooling
 
 import sys
@@ -43,12 +45,12 @@ x_train =  x_train / 255
 
 x_test  = x_test / 255
 
-time_win = 3
-# filter_win = []
+time_win = 5
+filter_win = []
 x_tr = []
 x_ts = []
 # for i in range(time_win):
-filter_wins= np.random.rand(time_win,28,28)
+filter_wins = np.random.rand(time_win,28,28)
 # print(filter_win.shape)
 
 for ele in x_train:
@@ -57,6 +59,9 @@ for ele in x_train:
     for filter_win in filter_wins:
         encode = (ele > filter_win).astype('float32') 
         eles.append(encode*ele)
+    for i in range(4):
+        eles[i+1] = eles[i+1] + eles[i]
+        eles[i+1] = eles[i+1] * (eles[i+1] <= np.ones((28,28))).astype('float32')  
     ele = np.array(eles)
     # print(ele.shape)
     ele = np.moveaxis(ele,0,-1)
@@ -69,6 +74,9 @@ for ele in x_test:
     for filter_win in filter_wins:
         encode = (ele > filter_win).astype('float32') 
         eles.append(encode*ele)
+    for i in range(4):
+        eles[i+1] = eles[i+1] + eles[i]
+        eles[i+1] = eles[i+1] * (eles[i+1] <= np.ones((28,28))).astype('float32')
     ele = np.array(eles)
     ele = np.moveaxis(ele, 0, -1)
     x_ts.append(ele)
@@ -78,27 +86,47 @@ x_ts = np.array(x_ts)
 
 # print(x_tr.shape)
 
-inputs = Input(shape=(28, 28, 3,))
+inputs = Input(shape=(28, 28,5,))
 flattened_inputs = Flatten()(inputs)
+# fas_out = []
+# for i in range(time_win):
+#     filter_win = tf.random.normal([784,],mean = 0.5,)
+#     # print(filter_win)
+#     mask = tf.math.greater(flattened_inputs,filter_win)
+#     mask = tf.cast(mask,tf.float32)
+#     # print(mask)
+#     flattened_inputs = tf.math.multiply(flattened_inputs ,mask)  
+#     # print(flattened_inputs)
+    
+#     fas_in = Fashion(flattened_inputs)
+#     fas_in = fas_in.forward()
+#     fas_out.append(fas_in)
+#     # try:
+#     # fas_out = tf.add(fas_out, fas_in)
+#     # except:
+#     #     fas_out = fas_in
+# fas_out = Average()(fas_out)
+
+
 fas_in_1 = Lambda(lambda x : x[:,:784])(flattened_inputs)
 fas_in_2 = Lambda(lambda x : x[:,784:1568])(flattened_inputs)
 fas_in_3 = Lambda(lambda x : x[:,1568:2352])(flattened_inputs)
-# fas_in_4 = Lambda(lambda x : x[:,2352:3136])(flattened_inputs)
-# fas_in_5 = Lambda(lambda x : x[:,3136:])(flattened_inputs)
+fas_in_4 = Lambda(lambda x : x[:,2352:3136])(flattened_inputs)
+fas_in_5 = Lambda(lambda x : x[:,3136:])(flattened_inputs)
 
 fas_in_1 = Fashion(fas_in_1)
 fas_in_2 = Fashion(fas_in_2)
 fas_in_3 = Fashion(fas_in_3)
-# fas_in_4 = Fashion(fas_in_4)
-# fas_in_5 = Fashion(fas_in_5)
+fas_in_4 = Fashion(fas_in_4)
+fas_in_5 = Fashion(fas_in_5)
 
 fas_in_1 = fas_in_1.forward()
 fas_in_2 = fas_in_2.forward()
 fas_in_3 = fas_in_3.forward()
-# fas_in_4 = fas_in_4.forward()
-# fas_in_5 = fas_in_5.forward()
+fas_in_4 = fas_in_4.forward()
+fas_in_5 = fas_in_5.forward()
 
-fas_out = Concatenate(axis=1)([fas_in_1,fas_in_2,fas_in_3])
+fas_out = Average()([fas_in_1,fas_in_2,fas_in_3,fas_in_4, fas_in_5])
 fas_out = AdditivePooling(10)(fas_out)
 
 predictions = Activation('softmax')(fas_out)
