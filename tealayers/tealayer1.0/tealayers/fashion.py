@@ -8,19 +8,9 @@ import math
 import tensorflow as tf
 from tensorflow import squeeze
 import numpy as np
-from keras import backend as K
-from keras import Model
 from keras.engine.topology import Layer
-from keras import initializers
-from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, AveragePooling1D, Reshape, Concatenate, MaxPooling1D,Average 
-from keras.datasets import fashion_mnist
-from keras.optimizers import Adam,SGD
-from keras.utils import to_categorical
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
+from keras.layers import Lambda,Concatenate,Average,BatchNormalization 
 from tea import Tea
-from additivepooling import AdditivePooling
 
 import sys
 sys.path.append("../../../rancutils/rancutils")
@@ -54,7 +44,7 @@ class Fashion(Layer):
         x8 = Tea(256)(x8)
 
         x_1 = Concatenate(axis=1)([x0, x1, x2, x3, x4, x5, x6, x7, x8])
-
+        # x_1 = BatchNormalization()(x_1)
         x0 = Lambda(lambda x : x[:,:512])(x_1)
         x1 = Lambda(lambda x : x[:,224:736])(x_1)
         x2 = Lambda(lambda x : x[:,448:960])(x_1)
@@ -76,7 +66,7 @@ class Fashion(Layer):
         x8 = Tea(128)(x8)
 
         x_2 = Concatenate(axis=1)([x0, x1, x2, x3, x4, x5, x6, x7, x8])
-
+        # x_2 = BatchNormalization()(x_2)
         x0 = Lambda(lambda x : x[:,:512])(x_2)
         x1 = Lambda(lambda x : x[:,80:592])(x_2)
         x2 = Lambda(lambda x : x[:,160:672])(x_2)
@@ -114,7 +104,7 @@ class Fashion(Layer):
         # Concatenate output of first layer to send into next
 
         x = Concatenate(axis=1)([x0, x1, x2])
-
+        # x = BatchNormalization()(x)
         x = Tea(510)(x)
 
         x = Average()([x_2,x_3,x_4,x])
