@@ -28,22 +28,20 @@ sys.path.append("../../../rancutils/rancutils")
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 
-class Fashion():
-    def __init__(self, input):
-        self.flattened_inputs = input
-        # self.time_window = time
-
+class Fashion(Layer):
+    def __init__(self,inputs):
+        self.inputs = inputs
     def forward(self):
-        
-        x0 = Lambda(lambda x : x[:,:512])(self.flattened_inputs)
-        x1 = Lambda(lambda x : x[:,34:546])(self.flattened_inputs)
-        x2 = Lambda(lambda x : x[:,68:580])(self.flattened_inputs)
-        x3 = Lambda(lambda x : x[:,102:614])(self.flattened_inputs)
-        x4 = Lambda(lambda x : x[:,136:648])(self.flattened_inputs)
-        x5 = Lambda(lambda x : x[:,170:682])(self.flattened_inputs)
-        x6 = Lambda(lambda x : x[:,204:716])(self.flattened_inputs)
-        x7 = Lambda(lambda x : x[:,238:750])(self.flattened_inputs)
-        x8 = Lambda(lambda x : x[:,272:])(self.flattened_inputs)
+        # inputs = Input(shape=(784,))
+        x0 = Lambda(lambda x : x[:,:512])(self.inputs)
+        x1 = Lambda(lambda x : x[:,34:546])(self.inputs)
+        x2 = Lambda(lambda x : x[:,68:580])(self.inputs)
+        x3 = Lambda(lambda x : x[:,102:614])(self.inputs)
+        x4 = Lambda(lambda x : x[:,136:648])(self.inputs)
+        x5 = Lambda(lambda x : x[:,170:682])(self.inputs)
+        x6 = Lambda(lambda x : x[:,204:716])(self.inputs)
+        x7 = Lambda(lambda x : x[:,238:750])(self.inputs)
+        x8 = Lambda(lambda x : x[:,272:])(self.inputs)
 
         x0 = Tea(256)(x0)
         x1 = Tea(256)(x1)
@@ -119,11 +117,6 @@ class Fashion():
 
         x = Tea(510)(x)
 
-        x = Average()([x_2,x_3,x_4,x])
-        
+        # x = Average()([x_2,x_3,x_4,x])
+
         return x
-        # # Pool spikes and output neurons into 10 classes.
-
-        # x = AdditivePooling(10)(x)
-
-        # self. predictions = Activation('softmax')(x)

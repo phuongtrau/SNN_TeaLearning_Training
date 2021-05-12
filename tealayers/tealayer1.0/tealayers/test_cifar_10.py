@@ -6,13 +6,14 @@ import functools
 import math
 
 import tensorflow as tf
+from tensorflow import squeeze
 import numpy as np
 from keras import backend as K
 from keras import Model
 from keras.engine.topology import Layer
 from keras import initializers
 from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, concatenate
+from keras.layers import Dropout, Flatten, Activation, Input, Lambda, concatenate,Average, Concatenate, MaxPooling1D, Reshape
 from keras.datasets import cifar10
 from keras.optimizers import Adam
 from keras.utils import to_categorical
@@ -21,7 +22,7 @@ from tea import Tea
 from additivepooling import AdditivePooling
 
 import sys
-sys.path.append("/home/phuongdh/Documents/SNN_TeaLearning_Training/rancutils/rancutils")
+sys.path.append("../../../rancutils/rancutils")
 
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
@@ -40,82 +41,100 @@ y_test_not = y_test
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
 
-inputs = Input(shape=(32, 32,3,))
+inputs_1 = Input(shape=(32, 32,3,))
+
 ### GET ALL CHANNEL ###  
-red = Lambda(lambda x : x[:,:,:,0])(inputs)
-green = Lambda(lambda x : x[:,:,:,1])(inputs)
-blue = Lambda(lambda x : x[:,:,:,2])(inputs)
+
+red = Lambda(lambda x : x[:,:,:,0])(inputs_1)
+green = Lambda(lambda x : x[:,:,:,1])(inputs_1)
+blue = Lambda(lambda x : x[:,:,:,2])(inputs_1)
+inputs = Average()([red,green,blue])
+flattened_inputs = Flatten()(inputs)
+# flattened_inputs = Activation('sigmoid')(flattened_inputs)
+
 ### USING KERNEL  ###
-# FIRST STEP # STRIDE = 2 
-red_1_1 = Lambda(lambda x : x[:,0:16,0:16])(red)
-red_1_2 = Lambda(lambda x : x[:,16:,0:16])(red)
-red_1_3 = Lambda(lambda x : x[:,0:16,16:])(red)
-red_1_4 = Lambda(lambda x : x[:,16:,16:])(red)
 
-green_1_1 = Lambda(lambda x : x[:,0:16,0:16])(green)
-green_1_2 = Lambda(lambda x : x[:,16:,0:16])(green)
-green_1_3 = Lambda(lambda x : x[:,0:16,16:])(green)
-green_1_4 = Lambda(lambda x : x[:,16:,16:])(green)
+### layer 1 ### 
 
-blue_1_1 = Lambda(lambda x : x[:,0:16,0:16])(blue)
-blue_1_2 = Lambda(lambda x : x[:,16:,0:16])(blue)
-blue_1_3 = Lambda(lambda x : x[:,0:16,16:])(blue)
-blue_1_4 = Lambda(lambda x : x[:,16:,16:])(blue)
-# SECOND STEP # 
-red_2_1 = Lambda(lambda x : x[:,2:18,2:18])(red)
-red_2_2 = Lambda(lambda x : x[:,14:30,2:18])(red)
-red_2_3 = Lambda(lambda x : x[:,2:18,14:30])(red)
-red_2_4 = Lambda(lambda x : x[:,14:30,14:30])(red)
+x1 = Lambda(lambda x : x[:,:256])(flattened_inputs)
+x2 = Lambda(lambda x : x[:,96:352])(flattened_inputs)
+x3 = Lambda(lambda x : x[:,192:448])(flattened_inputs)
+x4 = Lambda(lambda x : x[:,288:544])(flattened_inputs)
+x5 = Lambda(lambda x : x[:,384:640])(flattened_inputs)
+x6 = Lambda(lambda x : x[:,480:736])(flattened_inputs)
+x7 = Lambda(lambda x : x[:,576:832])(flattened_inputs)
+x8 = Lambda(lambda x : x[:,672:928])(flattened_inputs)
+x9 = Lambda(lambda x : x[:,768:])(flattened_inputs)
 
-green_2_1 = Lambda(lambda x : x[:,2:18,2:18])(green)
-green_2_2 = Lambda(lambda x : x[:,14:30,2:18])(green)
-green_2_3 = Lambda(lambda x : x[:,2:18,14:30])(green)
-green_2_4 = Lambda(lambda x : x[:,16:,16:])(green)
+x1 = Tea(128)(x1)
+x2 = Tea(128)(x2)
+x3 = Tea(128)(x3)
 
-blue_2_1 = Lambda(lambda x : x[:,2:18,2:18])(blue)
-blue_2_2 = Lambda(lambda x : x[:,14:30,2:18])(blue)
-blue_2_3 = Lambda(lambda x : x[:,2:18,14:30])(blue)
-blue_2_4 = Lambda(lambda x : x[:,14:30,14:30])(blue)
-# THIRTH STEP #
-red_3_1 = Lambda(lambda x : x[:,4:20,4:20])(red)
-red_3_2 = Lambda(lambda x : x[:,12:28,4:20])(red)
-red_3_3 = Lambda(lambda x : x[:,4:20,12:28])(red)
-red_3_4 = Lambda(lambda x : x[:,12:28,12:28])(red)
+x4 = Tea(128)(x4)
+x5 = Tea(128)(x5)
+x6 = Tea(128)(x6)
 
-green_3_1 = Lambda(lambda x : x[:,4:20,4:20])(green)
-green_3_2 = Lambda(lambda x : x[:,12:28,4:20])(green)
-green_3_3 = Lambda(lambda x : x[:,4:20,12:28])(green)
-green_3_4 = Lambda(lambda x : x[:,12:28,12:28])(green)
+x7 = Tea(128)(x7)
+x8 = Tea(128)(x8)
+x9 = Tea(128)(x9)
 
-blue_3_1 = Lambda(lambda x : x[:,4:20,4:20])(blue)
-blue_3_2 = Lambda(lambda x : x[:,12:28,4:20])(blue)
-blue_3_3 = Lambda(lambda x : x[:,4:20,12:28])(blue)
-blue_3_4 = Lambda(lambda x : x[:,12:28,12:28])(blue)
-# FOURTH STEP #
-red_4_1 = Lambda(lambda x : x[:,6:22,6:22])(red)
-red_4_2 = Lambda(lambda x : x[:,10:26,6:22])(red)
-red_4_3 = Lambda(lambda x : x[:,6:22,10:26])(red)
-red_4_4 = Lambda(lambda x : x[:,10:26,10:26])(red)
+x_1 = Concatenate(axis=1)([x1,x2,x3,x4,x5,x6,x7,x8,x9])
+x_1 = Reshape((1152,1)) (x_1)
+x_1  = MaxPooling1D(pool_size=2, strides=2, padding="valid", data_format="channels_last")(x_1)
+x_1  = Lambda(lambda x : squeeze(x,2))(x_1)
 
-green_4_1 = Lambda(lambda x : x[:,6:22,6:22])(green)
-green_4_2 = Lambda(lambda x : x[:,10:26,6:22])(green)
-green_4_3 = Lambda(lambda x : x[:,6:22,10:26])(green)
-green_4_4 = Lambda(lambda x : x[:,10:26,10:26])(green)
+# 576 feature number # 
 
-blue_4_1 = Lambda(lambda x : x[:,6:22,6:22])(blue)
-blue_4_2 = Lambda(lambda x : x[:,10:26,6:22])(blue)
-blue_4_3 = Lambda(lambda x : x[:,6:22,10:26])(blue)
-blue_4_4 = Lambda(lambda x : x[:,10:26,10:26])(blue)
-# FINAL STEP #
+x1 = Lambda(lambda x : x[:,:256])(x_1)
+x2 = Lambda(lambda x : x[:,40:296])(x_1)
+x3 = Lambda(lambda x : x[:,80:336])(x_1)
+x4 = Lambda(lambda x : x[:,120:376])(x_1)
+x5 = Lambda(lambda x : x[:,160:416])(x_1)
+x6 = Lambda(lambda x : x[:,200:456])(x_1)
+x7 = Lambda(lambda x : x[:,240:496])(x_1)
+x8 = Lambda(lambda x : x[:,280:536])(x_1)
+x9 = Lambda(lambda x : x[:,320:])(x_1)
 
-red_5 = Lambda(lambda x : x[:,8:24,8:24])(red)
-green_5 = Lambda(lambda x : x[:,8:24,8:24])(green)
-blue_5 = Lambda(lambda x : x[:,8:24,8:24])(blue)
+x1 = Tea(85)(x1)
+x2 = Tea(85)(x2)
+x3 = Tea(85)(x3)
 
+x4 = Tea(85)(x4)
+x5 = Tea(85)(x5)
+x6 = Tea(85)(x6)
 
+x7 = Tea(85)(x7)
+x8 = Tea(85)(x8)
+x9 = Tea(85)(x9)
 
+x_2 = Concatenate(axis=1)([x1,x2,x3])
+x_3 = Concatenate(axis=1)([x4,x5,x6])
+x_4 = Concatenate(axis=1)([x7,x8,x9])
 
+x_2 = Tea(85)(x_2)
 
+x_3 = Tea(85)(x_3)
 
+x_4 = Tea(85)(x_4)
 
+x_out = Concatenate(axis=1)([x_2,x_3,x_4])
 
+x = Tea(250)(x_out)
+
+# Pool spikes and output neurons into 10 classes.
+
+x = AdditivePooling(10)(x)
+
+predictions = Activation('softmax')(x)
+
+model = Model(inputs=inputs_1, outputs=predictions)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=Adam(),
+              metrics=['accuracy'])
+
+model.fit(x_train, y_train,
+          batch_size=128,
+          epochs=50,
+          verbose=1,
+          validation_split=0.2)
