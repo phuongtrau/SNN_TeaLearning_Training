@@ -43,74 +43,54 @@ x_train =  x_train / 255
 
 x_test  = x_test / 255
 
-time_window = 5
-
-filter = []
-x_tr = []
-x_ts = []
-for k in range(time_window):
-    filter.append(list(np.random.rand(28,28)))
-    x_train_temp = x_train > np.array(filter[k])
-    x_train_temp = x_train_temp.astype('float32')
-    x_tr.append(x_train_temp * x_train)
-    x_test_temp = x_test > np.array(filter[k])
-    x_test_temp = x_test_temp.astype('float32')
-    x_ts.append(x_test_temp * x_test)
-    # x_ts.append(x_train)
-
-# x_train = np.concatenate(x_tr[:,:,:,np.newaxis],axis= 3)
-# x_test = np.concatenate(x_ts[:,:,:,np.newaxis],axis= 3)
+time_win = 5
 
 
-print(np.array(x_tr).shape)
-x_tr = np.reshape(x_tr,(-1,28,28,5))
-# print(x_tr.shape)
-# np.save("x_train_2bit",x_train)
-# x_test = np.concatenate([x_test_1[:,:,:,np.newaxis],x_test_2[:,:,:,np.newaxis]],axis=3)
-# np.save("x_test_2bit",x_test)
-# np.save("y_train",y_train)
-# np.save("y_test",y_test)
-
-inputs = Input(shape=(28, 28,5,))
-
+inputs = Input(shape=(28, 28,))
+print(inputs)
 flattened = Flatten()(inputs)
-# flattened_inputs = []
-flattened_inputs_1 = Lambda(lambda x : x[:,:784])(flattened)
-flattened_inputs_2 = Lambda(lambda x : x[:,784:2*784])(flattened)
-flattened_inputs_3 = Lambda(lambda x : x[:,2*784:3*784])(flattened)
-flattened_inputs_4 = Lambda(lambda x : x[:,3*784:4*784])(flattened)
-flattened_inputs_5 = Lambda(lambda x : x[:,4*784:5*784])(flattened)
+print(flattened)
+fas_out = tf.zeros([510,])
+fas_in_temp = tf.zeros_like(flattened)
 
-fas_1 = Fashion(flattened_inputs_1)
-fas_2 = Fashion(flattened_inputs_2)
-fas_3 = Fashion(flattened_inputs_3)
-fas_4 = Fashion(flattened_inputs_4)
-fas_5 = Fashion(flattened_inputs_5)
+for i in range(time_win):
+    filter_win = tf.random.normal([-1,784],mean = 0.5)
+    print(filter_win)
+    mask = tf.math.greater(flattened,filter_win)
+    mask = tf.cast(mask,tf.float32)
+    print(mask)
+    flattened = tf.math.multiply(flattened ,mask)
 
-fas_1 = fas_1.forward()
-fas_2 = fas_2.forward()
-fas_3 = fas_3.forward()
-fas_4 = fas_4.forward()
-fas_5 = fas_5.forward()
+    fas_in_temp = tf.math.add(fas_in_temp,flattened) 
+    # print(flattened_inputs)
+    
+    fas_in = Fashion(fas_in_temp)
+    fas_in = fas_in.forward_1()
+    print(fas_in)
+    fas_out = tf.math.add(fas_out,fas_in)
+    print(fas_out)
 
-final = np.concatenate([fas_1,fas_2,fas_3,fas_4,fas_5])
-final = AdditivePooling(10)(final)
+fas_out = fas_out / time_win
+print(fas_out)
 
+final = AdditivePooling(10)(fas_out)
+print(final)
 predictions = Activation('softmax')(final)
+print(predictions)
 
-model = Model(inputs=inputs, outputs=predictions)
+model = Model(inputs= inputs, outputs= predictions)
 
 model.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 
-model.fit(x_tr, y_train,
+model.fit(x_train, y_train,
           batch_size=64,
           epochs=50,
           verbose=1,
           validation_split=0.2)
 
-score = model.evaluate(x_ts, y_test, verbose=0)
+score = model.evaluate(x_test, y_test, verbose=0)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
