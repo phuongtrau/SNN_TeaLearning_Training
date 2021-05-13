@@ -110,3 +110,17 @@ class Fashion(Layer):
         x = Average()([x_2,x_3,x_4,x])
 
         return x
+    def forward_1(self):
+        x0 = Lambda(lambda x : x[:,:512])(self.inputs)
+        x1 = Lambda(lambda x : x[:,91:603])(self.inputs)
+        x2 = Lambda(lambda x : x[:,181:693])(self.inputs)
+        x3 = Lambda(lambda x : x[:,272:])(self.inputs)
+        x0 = Tea(128)(x0)
+        x1 = Tea(128)(x1)
+        x2 = Tea(128)(x2)
+        x3 = Tea(128)(x3)
+        # print(x0,x1,x2,x3)
+        # Concatenate output of first layer to send into next
+        x = Concatenate(axis=1)([x0, x1, x2, x3])
+        x = Tea(510)(x)
+        return x
