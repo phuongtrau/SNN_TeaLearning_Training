@@ -57,6 +57,7 @@ for i in range(time_win):
     filter_win = tf.random.normal([-1,784],mean = 0.5)
     print(filter_win)
     mask = tf.math.greater(flattened,filter_win)
+    print(mask)
     mask = tf.cast(mask,tf.float32)
     print(mask)
     flattened = tf.math.multiply(flattened ,mask)
@@ -65,6 +66,7 @@ for i in range(time_win):
     # print(flattened_inputs)
     
     fas_in = Fashion(fas_in_temp)
+    print(fas_in)
     fas_in = fas_in.forward_1()
     print(fas_in)
     fas_out = tf.math.add(fas_out,fas_in)

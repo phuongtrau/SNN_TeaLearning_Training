@@ -45,7 +45,7 @@ x_train =  x_train / 255
 
 x_test  = x_test / 255
 
-time_win = 10
+time_win = 4
 filter_win = []
 x_tr = []
 x_ts = []
@@ -59,9 +59,9 @@ for ele in x_train:
     for filter_win in filter_wins:
         encode = (ele > filter_win).astype('float32') 
         eles.append(encode*ele)
-    # for i in range(4):
-    #     eles[i+1] = eles[i+1] + eles[i]
-    #     eles[i+1] = eles[i+1] + eles[i+1] * (eles[i+1] > np.ones((28,28))).astype('float32')  
+    for i in range(3):
+        eles[i+1] = eles[i+1] + eles[i]
+        eles[i+1] = eles[i+1] * (eles[i+1] <= np.ones((28,28))).astype('float32') + (eles[i+1] > np.ones((28,28))).astype('float32')  
     ele = np.array(eles)
     # print(ele.shape)
     ele = np.moveaxis(ele,0,-1)
@@ -74,9 +74,9 @@ for ele in x_test:
     for filter_win in filter_wins:
         encode = (ele > filter_win).astype('float32') 
         eles.append(encode*ele)
-    # for i in range(4):
-    #     eles[i+1] = eles[i+1] + eles[i]
-    #     eles[i+1] = eles[i+1] + eles[i+1] * (eles[i+1] > np.ones((28,28))).astype('float32')
+    for i in range(3):
+        eles[i+1] = eles[i+1] + eles[i]
+        eles[i+1] = eles[i+1] * (eles[i+1] <= np.ones((28,28))).astype('float32') + (eles[i+1] > np.ones((28,28))).astype('float32') 
     ele = np.array(eles)
     ele = np.moveaxis(ele, 0, -1)
     x_ts.append(ele)
@@ -86,7 +86,7 @@ x_ts = np.array(x_ts)
 
 # print(x_tr.shape)
 
-inputs = Input(shape=(28, 28, 10,))
+inputs = Input(shape=(28, 28, 4,))
 flattened_inputs = Flatten()(inputs)
 # fas_out = []
 # for i in range(time_win):
@@ -112,36 +112,36 @@ fas_in_1 = Lambda(lambda x : x[:,:784])(flattened_inputs)
 fas_in_2 = Lambda(lambda x : x[:,784:1568])(flattened_inputs)
 fas_in_3 = Lambda(lambda x : x[:,1568:2352])(flattened_inputs)
 fas_in_4 = Lambda(lambda x : x[:,2352:3136])(flattened_inputs)
-fas_in_5 = Lambda(lambda x : x[:,3136:5*784])(flattened_inputs)
-fas_in_6 = Lambda(lambda x : x[:,5*784:6*784])(flattened_inputs)
-fas_in_7 = Lambda(lambda x : x[:,6*784:7*784])(flattened_inputs)
-fas_in_8 = Lambda(lambda x : x[:,7*784:8*784])(flattened_inputs)
-fas_in_9 = Lambda(lambda x : x[:,8*784:9*784])(flattened_inputs)
-fas_in_10 = Lambda(lambda x : x[:,9*784:])(flattened_inputs)
+# fas_in_5 = Lambda(lambda x : x[:,3136:5*784])(flattened_inputs)
+# fas_in_6 = Lambda(lambda x : x[:,5*784:6*784])(flattened_inputs)
+# fas_in_7 = Lambda(lambda x : x[:,6*784:7*784])(flattened_inputs)
+# fas_in_8 = Lambda(lambda x : x[:,7*784:8*784])(flattened_inputs)
+# fas_in_9 = Lambda(lambda x : x[:,8*784:9*784])(flattened_inputs)
+# fas_in_10 = Lambda(lambda x : x[:,9*784:])(flattened_inputs)
 
 fas_in_1 = Fashion(fas_in_1)
 fas_in_2 = Fashion(fas_in_2)
 fas_in_3 = Fashion(fas_in_3)
 fas_in_4 = Fashion(fas_in_4)
-fas_in_5 = Fashion(fas_in_5)
-fas_in_6 = Fashion(fas_in_6)
-fas_in_7 = Fashion(fas_in_7)
-fas_in_8 = Fashion(fas_in_8)
-fas_in_9 = Fashion(fas_in_9)
-fas_in_10 = Fashion(fas_in_10)
+# fas_in_5 = Fashion(fas_in_5)
+# fas_in_6 = Fashion(fas_in_6)
+# fas_in_7 = Fashion(fas_in_7)
+# fas_in_8 = Fashion(fas_in_8)
+# fas_in_9 = Fashion(fas_in_9)
+# fas_in_10 = Fashion(fas_in_10)
 
-fas_in_1 = fas_in_1.forward_1()
-fas_in_2 = fas_in_2.forward_1()
-fas_in_3 = fas_in_3.forward_1()
-fas_in_4 = fas_in_4.forward_1()
-fas_in_5 = fas_in_5.forward_1()
-fas_in_6 = fas_in_6.forward_1()
-fas_in_7 = fas_in_7.forward_1()
-fas_in_8 = fas_in_8.forward_1()
-fas_in_9 = fas_in_9.forward_1()
-fas_in_10 = fas_in_10.forward_1()
+fas_in_1 = fas_in_1.forward()
+fas_in_2 = fas_in_2.forward()
+fas_in_3 = fas_in_3.forward()
+fas_in_4 = fas_in_4.forward()
+# fas_in_5 = fas_in_5.forward_1()
+# fas_in_6 = fas_in_6.forward_1()
+# fas_in_7 = fas_in_7.forward_1()
+# fas_in_8 = fas_in_8.forward_1()
+# fas_in_9 = fas_in_9.forward_1()
+# fas_in_10 = fas_in_10.forward_1()
 
-fas_out = Average()([fas_in_1,fas_in_2,fas_in_3,fas_in_4, fas_in_5, fas_in_6, fas_in_7, fas_in_8, fas_in_9, fas_in_10])
+fas_out = Average()([fas_in_1,fas_in_2,fas_in_3,fas_in_4])
 # fas_out = Activation('sigmoid')(fas_out)
 fas_out = AdditivePooling(10)(fas_out)
 
@@ -155,7 +155,7 @@ model.compile(loss='categorical_crossentropy',
 
 model.fit(x_tr, y_train,
           batch_size=32,
-          epochs=50,
+          epochs=100,
           verbose=1,
           validation_split=0.2)
 
