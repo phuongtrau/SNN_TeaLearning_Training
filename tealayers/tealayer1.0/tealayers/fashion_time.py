@@ -61,7 +61,7 @@ for ele in x_train:
         eles.append(encode*ele)
     for i in range(3):
         eles[i+1] = eles[i+1] + eles[i]
-        eles[i+1] = eles[i+1] * (eles[i+1] <= np.ones((28,28))).astype('float32') + (eles[i+1] > np.ones((28,28))).astype('float32')  
+        eles[i+1] = eles[i+1] + eles[i+1] * (eles[i+1] > np.ones((28,28))).astype('float32')  
     ele = np.array(eles)
     # print(ele.shape)
     ele = np.moveaxis(ele,0,-1)
@@ -76,7 +76,7 @@ for ele in x_test:
         eles.append(encode*ele)
     for i in range(3):
         eles[i+1] = eles[i+1] + eles[i]
-        eles[i+1] = eles[i+1] * (eles[i+1] <= np.ones((28,28))).astype('float32') + (eles[i+1] > np.ones((28,28))).astype('float32') 
+        eles[i+1] = eles[i+1] + eles[i+1] * (eles[i+1] > np.ones((28,28))).astype('float32')
     ele = np.array(eles)
     ele = np.moveaxis(ele, 0, -1)
     x_ts.append(ele)
@@ -130,10 +130,10 @@ fas_in_4 = Fashion(fas_in_4)
 # fas_in_9 = Fashion(fas_in_9)
 # fas_in_10 = Fashion(fas_in_10)
 
-fas_in_1 = fas_in_1.forward()
-fas_in_2 = fas_in_2.forward()
-fas_in_3 = fas_in_3.forward()
-fas_in_4 = fas_in_4.forward()
+fas_in_1 = fas_in_1.forward_2()
+fas_in_2 = fas_in_2.forward_2()
+fas_in_3 = fas_in_3.forward_2()
+fas_in_4 = fas_in_4.forward_2()
 # fas_in_5 = fas_in_5.forward_1()
 # fas_in_6 = fas_in_6.forward_1()
 # fas_in_7 = fas_in_7.forward_1()
@@ -141,6 +141,7 @@ fas_in_4 = fas_in_4.forward()
 # fas_in_9 = fas_in_9.forward_1()
 # fas_in_10 = fas_in_10.forward_1()
 
+# fas_out = Average()([fas_in_1,fas_in_2,fas_in_3,fas_in_4, fas_in_5, fas_in_6, fas_in_7, fas_in_8, fas_in_9, fas_in_10])
 fas_out = Average()([fas_in_1,fas_in_2,fas_in_3,fas_in_4])
 # fas_out = Activation('sigmoid')(fas_out)
 fas_out = AdditivePooling(10)(fas_out)
