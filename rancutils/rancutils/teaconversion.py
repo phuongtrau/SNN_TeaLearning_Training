@@ -42,7 +42,11 @@ def create_cores(
     neuron_reset_type=0
 ):
     connections, biases = get_connections_and_biases(model, num_layers)
-
+    # core_1 = (connections[0][0]+ connections[5][0] + connections[10][0] + connections[15][0])/4
+    # core_2 = (connections[1][0]+ connections[6][0] + connections[11][0] + connections[16][0])/4
+    # core_3 = (connections[2][0]+ connections[7][0] + connections[12][0] + connections[17][0])/4
+    # core_4 = (connections[3][0]+ connections[8][0] + connections[13][0] + connections[18][0])/4
+    # core_5 = (connections[4][0]+ connections[9][0] + connections[14][0] + connections[19][0])/4
     core_shapes = [[core.shape for core in layer] for layer in connections]
     # print(core_shapes)
     layer_sizes = [len(layer) for layer in connections]
