@@ -33,65 +33,29 @@ def mem_update(ops, x, mem, spike):
     return mem, spike
 
 class TeaTorch(nn.Module):
-    def __init__(self):
+    def __init__(self, 
+                units,
+                connection = None,
+                round_input= True,
+                round_connections = True,
+                round_bias = True,
+                clip_connections = True):
+        
         super(TeaTorch, self).__init__()
         
         self.units = units
-        self.activation = activations.get(activation)
-        self.use_bias = use_bias
-        if connection_initializer is not None:
-            self.connection_initializer = connection_initializer
-        else:
-            self.connection_initializer = initializers.TruncatedNormal(mean=0.5)
-            # print(self.connection_initializer)
-        if weight_initializer is not None:
-            self.weight_initializer = weight_initializer
-        else:
-            self.weight_initializer = tea_weight_initializer
-            # print(connection_initializer.shape)
-        self.bias_initializer = bias_initializer
-        self.connection_regularizer = regularizers.get(connection_regularizer)
-        self.connection_constraint = constraints.get(connection_constraint)
-        
-        self.input_width = None
+
         self.round_input = round_input
         self.round_connections = round_connections
         self.clip_connections = clip_connections
         self.round_bias = round_bias
-        self.constrain_outputs_after_trianing = \
-            constrain_outputs_after_trianing
-        # Needs to be set to `True` to use the `K.in_train_phase` function.
-        self.uses_learning_phase = True
 
-        self.connections = init_connection
+        if connection is not None:
+            self.connections = connection
+
+    def forward(self, input):
         
-        super(Tea, self).__init__(**kwargs)
 
-    def forward(self, input, time_window = 20):
-        c1_mem = c1_spike = torch.zeros(batch_size, cfg_cnn[0][1], cfg_kernel[0], cfg_kernel[0], device=device)
-        c2_mem = c2_spike = torch.zeros(batch_size, cfg_cnn[1][1], cfg_kernel[1], cfg_kernel[1], device=device)
-
-        h1_mem = h1_spike = h1_sumspike = torch.zeros(batch_size, cfg_fc[0], device=device)
-        h2_mem = h2_spike = h2_sumspike = torch.zeros(batch_size, cfg_fc[1], device=device)
-
-        for step in range(time_window): # simulation time steps
-            x = input > torch.rand(input.size(), device=device) # prob. firing
-
-            c1_mem, c1_spike = mem_update(self.conv1, x.float(), c1_mem, c1_spike)
-
-            x = F.avg_pool2d(c1_spike, 2)
-
-            c2_mem, c2_spike = mem_update(self.conv2,x, c2_mem,c2_spike)
-
-            x = F.avg_pool2d(c2_spike, 2)
-            x = x.view(batch_size, -1)
-
-            h1_mem, h1_spike = mem_update(self.fc1, x, h1_mem, h1_spike)
-            h1_sumspike += h1_spike
-            h2_mem, h2_spike = mem_update(self.fc2, h1_spike, h2_mem,h2_spike)
-            h2_sumspike += h2_spike
-
-        outputs = h2_sumspike / time_window
         return outputs
 
 
@@ -116,4 +80,4 @@ def tea_weight_initializer(shape, dtype=np.float32):
         else:
             for i in range(len(axon)):
                 ret_array[axon_num][i] = -1
-    return torch.tens(ret_array)
+    return torch.tensor(ret_array)
