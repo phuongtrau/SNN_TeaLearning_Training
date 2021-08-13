@@ -40,11 +40,13 @@ class AdditivePooling(Layer):
     def build(self, input_shape):
         assert len(input_shape) >= 2
         # The number of neurons must be collapsable into the number of classes
+        print(input_shape)
         assert input_shape[-1] % self.num_classes == 0
         self.num_inputs = input_shape[-1]
 
     def call(self, x):
         # Sum up ticks if there are ticks
+        # print(x.shape)
         if len(x.shape) >= 3:
             output = K.sum(x, axis=1)
         else:

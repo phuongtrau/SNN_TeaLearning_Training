@@ -178,8 +178,7 @@ class Tea(Layer):
         super(Tea, self).build(input_shape)
 
     def call(self, x):
-        with tf.get_default_graph().gradient_override_map(
-            {"Round":"CustomRound"}):
+        with tf.get_default_graph().gradient_override_map({"Round":"CustomRound"}):
             # Constrain input
             if self.round_input:
                 x = tf.round(x)
@@ -237,6 +236,7 @@ class Tea(Layer):
 
     def compute_output_shape(self, input_shape):
         assert input_shape and len(input_shape) >= 2
+        # print(input_shape)
         assert input_shape[-1]
         output_shape = list(input_shape)
         output_shape[-1] = self.units
