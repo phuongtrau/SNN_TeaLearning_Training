@@ -11,7 +11,7 @@ import numpy as np
 
 
 def write_cores(cores,
-                max_xy=(1, 11),
+                max_xy=(1, 21),
                 potential_width=9,
                 leak_width=9,
                 weight_width=9,
