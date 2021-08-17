@@ -25,12 +25,19 @@ import sys
 # a number corresponding to a specific in-bed position. We take advantage of this
 # and use the number to get the position with help of the following vectors.
 
-positions_i = ["justAPlaceholder", "supine", "right",
-               "left", "right", "right",
-               "left", "left", "supine",
-               "supine", "supine", "supine",
-               "supine", "right", "left",
-               "supine", "supine", "supine"]
+positions_i = ["justAPlaceholder", "supine_1", "right_0",
+               "left_0", "right_30", "right_60",
+               "left_30", "left_60", "supine_2",
+               "supine_3", "supine_4", "supine_5",
+               "supine_6", "right_fetus", "left_fetus",
+               "supine_30", "supine_45", "supine_60"]
+
+# positions_i = ["justAPlaceholder", "supine", "right",
+#                "left", "right", "right",
+#                "left", "left", "supine",
+#                "supine", "supine", "supine",
+#                "supine", "right", "left",
+#                "supine", "supine", "supine"]
 
 positions_ii = {
     "B":"supine", "1":"supine", "C":"right",
@@ -48,13 +55,34 @@ class_positions = ['supine', 'left', 'right', 'left_fetus', 'right_fetus']
 # are not considered in the "Experiment I", we encode them also as left and right
 # positions.
 
+# def token_position(x):
+#   return {
+#       'supine': 0,
+#       'left': 1,
+#       'right': 2,
+#       'left_fetus': 1,
+#       'right_fetus': 2
+#   }[x]
+
 def token_position(x):
   return {
-      'supine': 0,
-      'left': 1,
-      'right': 2,
-      'left_fetus': 1,
-      'right_fetus': 2
+      "supine_1":0, 
+      "right_0":1,
+      "left_0":2, 
+      "right_30":3, 
+      "right_60":4,
+      "left_30":5, 
+      "left_60":6, 
+      "supine_2":7,
+      "supine_3":8, 
+      "supine_4":9, 
+      "supine_5":10,
+      "supine_6":11, 
+      "right_fetus":12, 
+      "left_fetus":13,
+      "supine_30":14, 
+      "supine_45":15, 
+      "supine_60":16
   }[x]
 
 def load_exp_i(path):
@@ -86,16 +114,8 @@ def load_exp_i(path):
               raw_data = np.fromstring(line, dtype=float, sep='\t')
               # Change the range from [0-1000] to [0-255].
               file_data = np.round(raw_data*255/1000).astype(np.uint8)
-            #   print(len(file_data))
-            #   Normalize = transforms.Compose([
-            #               transforms.ToPILImage(),
-            #               transforms.ToTensor()
-            #               ])
-            #   file_data = Normalize(file_data.reshape(64,32))
-            #   file_data = file_data.view(1, 64, 32)
               file_data = file_data.reshape((1,64,32))
-              # Turn the file index into position list,
-              # and turn position list into reduced indices.
+
               file_label = token_position(positions_i[int(file[:-4])])
               file_label = np.array([file_label])
 

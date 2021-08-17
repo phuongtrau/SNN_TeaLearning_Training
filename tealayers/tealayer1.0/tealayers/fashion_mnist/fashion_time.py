@@ -28,9 +28,30 @@ from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 from fashion import Fashion
 from emulation import write_cores
+import cv2
 
 # Load FASHION_MNIST data
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+
+x_train_copy = np.empty_like(x_train)
+x_train_copy[:,:,:]=x_train
+
+x_test_copy = np.empty_like(x_test)
+x_test_copy[:,:,:]=x_test
+
+# print(x_train_copy.flags)
+# print(type(x_train))
+# print(len(x_train))
+x_train = x_train_copy
+x_test = x_test_copy
+
+for i in range(len(x_train)):
+    x_train[i] = cv2.equalizeHist(x_train[i])
+# print(x_train.shape)
+
+for i in range(len(x_test)):
+    x_test[i,:,:] = cv2.equalizeHist(x_test[i,:,:])
+
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
 

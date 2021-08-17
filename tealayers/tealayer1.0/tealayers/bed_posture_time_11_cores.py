@@ -55,8 +55,8 @@ x_test /= 255
 # img = cv2.equalizeHist(train_data.samples[0])
 # cv2.imwrite("test.jpg",img)
 
-y_train = to_categorical(train_data.labels, 3)
-y_test = to_categorical(test_data.labels, 3)
+y_train = to_categorical(train_data.labels, 17)
+y_test = to_categorical(test_data.labels, 17)
 
 # random.seed(0)
 (x_train,y_train) = shuffle(x_train,y_train)
@@ -71,7 +71,13 @@ filter_win = []
 x_tr = []
 x_ts = []
 # for i in range(time_win):
-filter_wins = np.random.poisson(lam= 1.85,size=(time_win,64,32))
+filter_wins = []
+
+for i in range(time_win):
+    filter_win = np.random.poisson(lam= 1.85+i*0.05,size=(64,32))
+    filter_wins.append(filter_win)
+    cv2.imwrite(str(i)+".jpg",filter_win*255)
+
 # print(filter_win.shape)
 
 for ele in x_train:
@@ -102,6 +108,8 @@ for ele in x_test:
     x_ts.append(ele)
 
 x_tr = np.array(x_tr)
+print(x_tr[0][:,:,4].shape)
+cv2.imwrite("time.jpg",x_tr[0][:,:,4]*255)
 x_ts = np.array(x_ts)
 
 
@@ -261,7 +269,7 @@ x_out_5 = Tea(255)(x_out_5)
 
 x_out = Average()([x_out_1,x_out_2,x_out_3,x_out_4,x_out_5])
 
-x_out = AdditivePooling(3)(x_out)
+x_out = AdditivePooling(17)(x_out)
 
 predictions = Activation('softmax')(x_out)
 
@@ -281,6 +289,9 @@ score = model.evaluate(x_ts, y_test, verbose=0)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
+
+
+
 
 # weights , biases = get_connections_and_biases(model,11)
 

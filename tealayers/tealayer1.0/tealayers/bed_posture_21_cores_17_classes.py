@@ -62,8 +62,8 @@ x_test /= 255
 # img = cv2.equalizeHist(train_data.samples[0])
 # cv2.imwrite("test.jpg",img)
 
-y_train = to_categorical(train_data.labels, 3)
-y_test = to_categorical(test_data.labels, 3)
+y_train = to_categorical(train_data.labels, 17)
+y_test = to_categorical(test_data.labels, 17)
 
 # random.seed(0)
 (x_train,y_train) = shuffle(x_train,y_train)
@@ -136,7 +136,7 @@ x4_1 = Tea(64)(x4_1_1)
 
 x_out = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
 x_out = Tea(255)(x_out)
-x_out = AdditivePooling(3)(x_out)
+x_out = AdditivePooling(17)(x_out)
 
 predictions = Activation('softmax')(x_out)
 
@@ -156,11 +156,11 @@ score = model.evaluate(x_test, y_test, verbose=0)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
-if (score[1]>=0.985):
-    print("good")
-    cores_sim = create_cores(model,21, neuron_reset_type=0) 
+# if (score[1]>=0.985):
+#     print("good")
+#     cores_sim = create_cores(model,21, neuron_reset_type=0) 
 
-    write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem_bed_posture")
+#     write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem_bed_posture")
 
 # ## get connection ## 
 # weights_1 , biases_1 = get_connections_and_biases(model,11)

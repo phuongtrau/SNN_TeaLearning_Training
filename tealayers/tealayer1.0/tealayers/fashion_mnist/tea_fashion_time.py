@@ -24,15 +24,21 @@ sys.path.append("../")
 
 from tea import Tea
 from additivepooling import AdditivePooling
+import cv2
 
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 from fashion import Fashion
 # Load FASHION_MNIST data
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+
 x_train = x_train.astype('float32')
+for i in range(len(x_train)):
+    x_train[i] = cv2.equalizeHist(x_train[i])
 # print(x_train.shape)
 x_test = x_test.astype('float32')
+for i in range(len(x_test)):
+    x_test[i] = cv2.equalizeHist(x_test[i])
 
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
