@@ -108,8 +108,8 @@ for ele in x_test:
     x_ts.append(ele)
 
 x_tr = np.array(x_tr)
-print(x_tr[0][:,:,4].shape)
-cv2.imwrite("time.jpg",x_tr[0][:,:,4]*255)
+# print(x_tr[0][:,:,4].shape)
+# cv2.imwrite("time.jpg",x_tr[0][:,:,4]*255)
 x_ts = np.array(x_ts)
 
 

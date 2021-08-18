@@ -156,11 +156,11 @@ score = model.evaluate(x_test, y_test, verbose=0)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
-if (score[1]>=0.985):
-    print("good")
-    cores_sim = create_cores(model,21, neuron_reset_type=0) 
+# if (score[1]>=0.985):
+#     print("good")
+#     cores_sim = create_cores(model,21, neuron_reset_type=0) 
 
-    write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem_bed_posture")
+#     write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem_bed_posture")
 
 # ## get connection ## 
 # weights_1 , biases_1 = get_connections_and_biases(model,11)

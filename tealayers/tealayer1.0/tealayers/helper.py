@@ -85,6 +85,40 @@ def token_position(x):
       "supine_60":16
   }[x]
 
+list_supine = ["1.txt","8.txt","9.txt","10.txt","11.txt","12.txt","15.txt","16.txt","17.txt"]
+list_left = ["3.txt","6.txt","7.txt","14.txt"]
+list_right = ["2.txt","4.txt","5.txt","13.txt"]
+
+def token_position_supine(x):
+  return {
+      "supine_1":0, 
+      "supine_2":1,
+      "supine_3":2, 
+      "supine_4":3, 
+      "supine_5":4,
+      "supine_6":5, 
+      "supine_30":6, 
+      "supine_45":7, 
+      "supine_60":8
+    }[x]
+
+def token_position_left(x):
+  return {
+      "left_0":0, 
+      "left_30":1, 
+      "left_60":2,
+      "left_fetus":3,
+  }[x]
+
+def token_position_right(x):
+  return {
+      "right_0":0,
+      "right_30":1, 
+      "right_60":2,
+      "right_fetus":3, 
+  }[x]
+
+
 def load_exp_i(path):
   """
   Creates a numpy array for the data and labels.
@@ -105,18 +139,21 @@ def load_exp_i(path):
       data = None
       labels = None
       for _, _, files in os.walk(os.path.join(path, directory)):
+        # print(files)
         for file in files:
+          # print(file)
           file_path = os.path.join(path, directory, file)
           with open(file_path, 'r') as f:
             # Start from second recording, as the first two are corrupted
             for line in f.read().splitlines()[2:]:
-
+              # print(line)
               raw_data = np.fromstring(line, dtype=float, sep='\t')
               # Change the range from [0-1000] to [0-255].
               file_data = np.round(raw_data*255/1000).astype(np.uint8)
               file_data = file_data.reshape((1,64,32))
-
+              # print(positions_i[int(file[:-4])])
               file_label = token_position(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
               file_label = np.array([file_label])
 
               if data is None:
@@ -130,6 +167,163 @@ def load_exp_i(path):
 
       dataset[subject] = (data, labels)
   return dataset
+
+def load_exp_i_supine(path):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        files = list_supine
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            # Start from second recording, as the first two are corrupted
+            for line in f.read().splitlines()[2:]:
+              # print(line)
+              raw_data = np.fromstring(line, dtype=float, sep='\t')
+              # Change the range from [0-1000] to [0-255].
+              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              
+              # file_data = np.round(raw_data).astype(float)
+              
+              file_data = file_data.reshape((1,64,32))
+
+              file_label = token_position_supine(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+
+      dataset[subject] = (data, labels)
+  return dataset
+
+def load_exp_i_left(path):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        files = list_left
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            # Start from second recording, as the first two are corrupted
+            for line in f.read().splitlines()[2:]:
+              # print(line)
+              raw_data = np.fromstring(line, dtype=float, sep='\t')
+              # Change the range from [0-1000] to [0-255].
+              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              
+
+              file_data = file_data.reshape((1,64,32))
+
+              file_label = token_position_left(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+
+      dataset[subject] = (data, labels)
+  return dataset
+
+def load_exp_i_right(path):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        files = list_right
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            # Start from second recording, as the first two are corrupted
+            for line in f.read().splitlines()[2:]:
+              # print(line)
+              raw_data = np.fromstring(line, dtype=float, sep='\t')
+              # Change the range from [0-1000] to [0-255].
+              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              file_data = file_data.reshape((1,64,32))
+
+              file_label = token_position_right(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+
+      dataset[subject] = (data, labels)
+  return dataset
+
+
 
 # Both air and sponge mattresses used in the data collection have a different
 # size (64 x 27), opposed to the pressure mattress (64 x 32) used in the first

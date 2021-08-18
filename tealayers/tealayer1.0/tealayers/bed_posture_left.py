@@ -12,13 +12,13 @@ from keras import Model
 from keras.engine.topology import Layer
 from keras import initializers
 from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate,Average
+from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate,Average,Permute
 from keras.datasets import mnist,fashion_mnist
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 import sys
 sys.path.append("../../../rancutils/rancutils")
-# sys.path.append("../../")
+
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
 # sys.path.append("../")
@@ -30,19 +30,20 @@ from tea import Tea
 from sklearn.utils import shuffle
 import cv2
 
-exp_i_data = helper.load_exp_i("../dataset/experiment-i")
+import preprocess
+from output_bus import OutputBus
+from serialization import save as sim_save
+from emulation import write_cores
+
+exp_i_data = helper.load_exp_i_left("../dataset/experiment-i")
 
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
 train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S2","S3","S4","S5","S6","S7","S8","S9"])
 # cv2.imwrite("img_raw.jpg",train_data.samples[99])
-for i in range(10):
-    cv2.imwrite("./image_test/img_raw_{}.jpg".format(i),train_data.samples[i*100])
-
 for i in range(len(train_data.samples)):
     train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
-for i in range(10):
-    cv2.imwrite("./image_test/img_raw_after_{}.jpg".format(i),train_data.samples[i*100])
+# cv2.imwrite("img_raw_after.jpg",train_data.samples[99])
 # print((train_data.samples.shape,train_data.labels.shape))
 
 test_data = helper.Mat_Dataset(datasets,["Base"],["S10","S11","S12","S13"])
@@ -53,33 +54,33 @@ for i in range(len(test_data.samples)):
 x_train = train_data.samples.astype('float32')
 x_test = test_data.samples.astype('float32')
 
-x_train /= 255
-x_test /= 255
+threshold_train = np.ones_like(x_train)*127
+threshold_test = np.ones_like(x_test)*127
 
-y_train = to_categorical(train_data.labels, 3)
-y_test = to_categorical(test_data.labels, 3)
+x_train = np.array(x_train>=threshold_train).astype(float)
+x_test = np.array(x_test>=threshold_test).astype(float)
 
-# for e in y_train:
-#     print(e)
+y_train = to_categorical(train_data.labels, 4)
+y_test = to_categorical(test_data.labels, 4)
 
-# random.seed(0)
 (x_train,y_train) = shuffle(x_train,y_train)
-# print(x_train_s,y_train_s)
 
 (x_test,y_test) = shuffle(x_test,y_test)
-# print(x_train_s,y_train_s)
 
 inputs = Input(shape=(64, 32,))
-flattened_inputs = Flatten()(inputs)
+permute = Permute((2,1))(inputs)
+flattened_inputs = Flatten()(permute)
+# flattened_inputs = Flatten()(inputs)
+flattened_inputs = Lambda(lambda x : x[:, :1536])(flattened_inputs)
+x1_1  = Lambda(lambda x : x[:,   3  : 259 ])(flattened_inputs)
+x2_1  = Lambda(lambda x : x[:, 185  : 441 ])(flattened_inputs)
+x3_1  = Lambda(lambda x : x[:, 367  : 623 ])(flattened_inputs)
+x4_1  = Lambda(lambda x : x[:, 549  : 805 ])(flattened_inputs)
+x5_1  = Lambda(lambda x : x[:, 731  : 987 ])(flattened_inputs)
+x6_1  = Lambda(lambda x : x[:, 913  : 1169 ])(flattened_inputs)
+x7_1  = Lambda(lambda x : x[:, 1095 : 1351 ])(flattened_inputs)
+x8_1  = Lambda(lambda x : x[:, 1277 : 1533 ])(flattened_inputs)
 
-x1_1  = Lambda(lambda x : x[:,     :256 ])(flattened_inputs)
-x2_1  = Lambda(lambda x : x[:, 256 :512 ])(flattened_inputs)
-x3_1  = Lambda(lambda x : x[:, 512 :768 ])(flattened_inputs)
-x4_1  = Lambda(lambda x : x[:, 768 :1024])(flattened_inputs)
-x5_1  = Lambda(lambda x : x[:, 1024:1280])(flattened_inputs)
-x6_1  = Lambda(lambda x : x[:, 1280:1536])(flattened_inputs)
-x7_1  = Lambda(lambda x : x[:, 1536:1792])(flattened_inputs)
-x8_1  = Lambda(lambda x : x[:, 1792:    ])(flattened_inputs)
 
 x1_1  = Tea(64)(x1_1)
 x2_1  = Tea(64)(x2_1)
@@ -97,8 +98,10 @@ x1_1 = Tea(128)(x1_1_1)
 x2_1 = Tea(128)(x2_1_1)
 
 x_out = Concatenate(axis=1)([x1_1,x2_1])
-x_out = Tea(255)(x_out)
-x_out = AdditivePooling(3)(x_out)
+
+# x_out = Tea(256)(x_out)
+
+x_out = AdditivePooling(4)(x_out)
 
 predictions = Activation('softmax')(x_out)
 
@@ -118,14 +121,3 @@ score = model.evaluate(x_test, y_test, verbose=0)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
-
-# weights , biases = get_connections_and_biases(model,11)
-
-from output_bus import OutputBus
-from serialization import save as sim_save
-from emulation import write_cores
-if score[1] >= 0.975:
-    print("good")
-    cores_sim = create_cores(model, 11,neuron_reset_type=0 ) 
-
-    write_cores(cores_sim,max_xy=(1,11),output_path="/home/phuongdh/Documents/SNN/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem_bed_posture_11_cores")
