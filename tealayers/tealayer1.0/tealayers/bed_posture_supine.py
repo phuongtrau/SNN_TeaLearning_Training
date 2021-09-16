@@ -26,238 +26,110 @@ from packet import Packet
 from additivepooling import AdditivePooling
 import helper
 from tea import Tea
-# import random
+import random
 from sklearn.utils import shuffle
 import cv2
 
-import preprocess
+# import preprocess
 from output_bus import OutputBus
 from serialization import save as sim_save
 from emulation import write_cores
 
-exp_i_data = helper.load_exp_i_supine("../dataset/experiment-i")
-
+exp_i_data = helper.load_exp_i_supine_norm("../dataset/experiment-i")
+# kernel = np.ones((3,3),np.uint8)*200
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
+
 train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S2","S3","S4","S5","S6","S7","S8","S9"])
-cv2.imwrite("img_raw.jpg",train_data.samples[99])
+kernel = np.ones((5,5),np.uint8)
 for i in range(len(train_data.samples)):
+    
     train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
-cv2.imwrite("img_raw_after.jpg",train_data.samples[99])
-# print((train_data.samples.shape,train_data.labels.shape))
+    _,thresh1=cv2.threshold(train_data.samples[i],0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    img_eros = cv2.erode(thresh1,kernel,iterations=1)
+    img_dila = cv2.dilate(img_eros,kernel,iterations=1)
+    train_data.samples[i] = cv2.equalizeHist(img_dila*train_data.samples[i])
 
 test_data = helper.Mat_Dataset(datasets,["Base"],["S10","S11","S12","S13"])
+
 for i in range(len(test_data.samples)):
+    
     test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-# print((test_data.samples,test_data.labels))
+    _,thresh1=cv2.threshold(test_data.samples[i],0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    img_eros = cv2.erode(thresh1,kernel,iterations=1)
+    img_dila = cv2.dilate(img_eros,kernel,iterations=1)
+    test_data.samples[i]= cv2.equalizeHist(test_data.samples[i]*img_dila)
 
 x_train = train_data.samples.astype('float32')
 x_test = test_data.samples.astype('float32')
 
-# threshold_train = np.ones_like(x_train)*127
-# threshold_test = np.ones_like(x_test)*127
+x_train /= 255
+x_test /= 255
 
-stage_1 = 63
-stage_2 = 127
-stage_3 = 190
+y_train = to_categorical(train_data.labels, 6)
+y_test = to_categorical(test_data.labels, 6)
+random.seed(0)
+(x_train,y_train) = shuffle(x_train,y_train)
+random.seed(1)
+(x_test,y_test) = shuffle(x_test,y_test)
 
-x_train_new = []
-for i in range(len(x_train)):
-    threshold = np.ones_like(x_train[i])
-    e_1 = np.array(x_train[i]>=threshold*stage_1).astype(float)*x_train/255
-    e_2 = np.array(x_train[i]>=threshold*stage_2).astype(float)*x_train/255 + e_1
-    e_3 = np.array(x_train[i]>=threshold*stage_3).astype(float)*x_train/255 + e_2
-    
-    # x_train[i] = (e_1+e_2+e_3)/3
+inputs = Input(shape=(64, 32,))
 
-    x_train_new.append(np.concatenate([e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis]],axis=2))
+permute = Permute((2,1))(inputs)
 
-x_train_new = np.array(x_train_new)
-# print(x_train_new.shape)
+flattened_inputs = Flatten()(permute)
 
-x_test_new = []
-for i in range(len(x_test)):
-    threshold = np.ones_like(x_test[i])
-    e_1 = np.array(x_test[i]>=threshold*stage_1).astype(float)*x_test/255
-    e_2 = np.array(x_test[i]>=threshold*stage_2).astype(float)*x_test/255 + e_1
-    e_3 = np.array(x_test[i]>=threshold*stage_3).astype(float)*x_test/255 + e_2
-    
-    # x_test[i] = (e_1+e_2+e_3)/3
-    
-    x_test_new.append(np.concatenate([e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis]],axis=2))
-    
-x_test_new = np.array(x_test_new)
-# print(x_test_new.shape)
+flattened_inputs = Lambda(lambda x : x[:,128: 1920])(flattened_inputs)
 
-# x_train = np.array(x_train>=threshold_train).astype(float)
-# x_test = np.array(x_test>=threshold_test).astype(float)
+x1_1  = Lambda(lambda x : x[:,   3 : 259 ])(flattened_inputs)
+x2_1  = Lambda(lambda x : x[:, 105 : 361 ])(flattened_inputs)
+x3_1  = Lambda(lambda x : x[:, 207 : 463 ])(flattened_inputs)
+x4_1  = Lambda(lambda x : x[:, 309 : 565 ])(flattened_inputs)
+x5_1  = Lambda(lambda x : x[:, 411 : 667 ])(flattened_inputs)
+x6_1  = Lambda(lambda x : x[:, 513 : 769 ])(flattened_inputs)
+x7_1  = Lambda(lambda x : x[:, 615 : 871 ])(flattened_inputs)
+x8_1  = Lambda(lambda x : x[:, 717 : 973 ])(flattened_inputs)
+x9_1  = Lambda(lambda x : x[:, 819 : 1075])(flattened_inputs)
+x10_1  = Lambda(lambda x : x[:,921 : 1177])(flattened_inputs)
+x11_1  = Lambda(lambda x : x[:,1023: 1279])(flattened_inputs)
+x12_1  = Lambda(lambda x : x[:,1125: 1381])(flattened_inputs)
+x13_1  = Lambda(lambda x : x[:,1227: 1483])(flattened_inputs)
+x14_1  = Lambda(lambda x : x[:,1329: 1585])(flattened_inputs)
+x15_1  = Lambda(lambda x : x[:,1431: 1687])(flattened_inputs)
+x16_1  = Lambda(lambda x : x[:,1533: 1789])(flattened_inputs)
 
+x1_1_1  = Tea(64)(x1_1)
+x2_1_1  = Tea(64)(x2_1)
+x3_1_1  = Tea(64)(x3_1)
+x4_1_1  = Tea(64)(x4_1)
+x5_1_1  = Tea(64)(x5_1)
+x6_1_1  = Tea(64)(x6_1)
+x7_1_1  = Tea(64)(x7_1)
+x8_1_1  = Tea(64)(x8_1)
+x9_1_1  = Tea(64)(x9_1)
+x10_1_1  = Tea(64)(x10_1)
+x11_1_1  = Tea(64)(x11_1)
+x12_1_1  = Tea(64)(x12_1)
+x13_1_1  = Tea(64)(x13_1)
+x14_1_1  = Tea(64)(x14_1)
+x15_1_1  = Tea(64)(x15_1)
+x16_1_1  = Tea(64)(x16_1)
 
-# x_train /= 255
-# x_test /= 255
+x1_1 = Concatenate(axis=1)([x1_1_1,x2_1_1,x3_1_1,x4_1_1])
+x2_1 = Concatenate(axis=1)([x5_1_1,x6_1_1,x7_1_1,x8_1_1])
+x3_1 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
+x4_1 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
 
-y_train = to_categorical(train_data.labels, 9)
-y_test = to_categorical(test_data.labels, 9)
+x1_1 = Tea(64)(x1_1)
+x2_1 = Tea(64)(x2_1)
+x3_1 = Tea(64)(x3_1)
+x4_1 = Tea(64)(x4_1)
 
-(x_train,y_train) = shuffle(x_train_new,y_train)
-# print(x_train_s,y_train_s)
+x_out = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
 
-(x_test,y_test) = shuffle(x_test_new,y_test)
+x_out = Tea(252)(x_out)
 
-inputs = Input(shape=(64, 32,3,))
-# print(inputs)
-# permute = Permute((2,1,3))(inputs)
-# print(permute)
-flattened_inputs = Flatten()(inputs)
-
-# flattened_inputs = Flatten()(permute)
-
-# flattened_inputs = Lambda(lambda x : x[:,: 2048])(flattened_inputs)
-
-# flattened_inputs_2 = Lambda(lambda x : x[:,2048:4096])(flattened_inputs)
-# flattened_inputs_3 = Lambda(lambda x : x[:,4096:])(flattened_inputs)
-
-# flattened_inputs = Lambda(lambda x : x[:,256: 1792])(flattened_inputs)
-
-# flattened_inputs_2 = Lambda(lambda x : x[:,256: 1792])(flattened_inputs_2)
-# flattened_inputs_3 = Lambda(lambda x : x[:,256: 1792])(flattened_inputs_3)
-
-x1_1  = Lambda(lambda x : x[:,     : 256 ])(flattened_inputs)
-x2_1  = Lambda(lambda x : x[:, 256 : 512 ])(flattened_inputs)
-x3_1  = Lambda(lambda x : x[:, 512 : 768 ])(flattened_inputs)
-x4_1  = Lambda(lambda x : x[:, 768 : 1024 ])(flattened_inputs)
-x5_1  = Lambda(lambda x : x[:, 1024 : 1280 ])(flattened_inputs)
-x6_1  = Lambda(lambda x : x[:, 1280 : 1536])(flattened_inputs)
-x7_1  = Lambda(lambda x : x[:, 1536: 1792])(flattened_inputs)
-x8_1  = Lambda(lambda x : x[:, 1792: 2048])(flattened_inputs)
-
-x9_1  = Lambda(lambda x : x[:, 2048: 2304 ])(flattened_inputs)
-x10_1  = Lambda(lambda x : x[:,2304 : 2560 ])(flattened_inputs)
-x11_1  = Lambda(lambda x : x[:,2560 : 2816 ])(flattened_inputs)
-x12_1  = Lambda(lambda x : x[:,2816 : 3072 ])(flattened_inputs)
-x13_1  = Lambda(lambda x : x[:,3072 : 3328 ])(flattened_inputs)
-x14_1  = Lambda(lambda x : x[:,3328 : 3584])(flattened_inputs)
-x15_1  = Lambda(lambda x : x[:,3584: 3840])(flattened_inputs)
-x16_1  = Lambda(lambda x : x[:,3840: 4096])(flattened_inputs)
-
-x17_1  = Lambda(lambda x : x[:,4096 : 4352 ])(flattened_inputs)
-x18_1  = Lambda(lambda x : x[:,4352 : 4608 ])(flattened_inputs)
-x19_1  = Lambda(lambda x : x[:,4608 : 4864])(flattened_inputs)
-x20_1  = Lambda(lambda x : x[:,4864 : 5120 ])(flattened_inputs)
-x21_1  = Lambda(lambda x : x[:,5120 : 5376 ])(flattened_inputs)
-x22_1  = Lambda(lambda x : x[:,5376 : 5632])(flattened_inputs)
-x23_1  = Lambda(lambda x : x[:,5632: 5888])(flattened_inputs)
-x24_1  = Lambda(lambda x : x[:,5888: 6144])(flattened_inputs)
-
-x1_1  = Tea(64)(x1_1)
-x2_1  = Tea(64)(x2_1)
-x3_1  = Tea(64)(x3_1)
-x4_1  = Tea(64)(x4_1)
-x5_1  = Tea(64)(x5_1)
-x6_1  = Tea(64)(x6_1)
-x7_1  = Tea(64)(x7_1)
-x8_1  = Tea(64)(x8_1)
-
-x9_1  = Tea(64)(x9_1)
-x10_1  = Tea(64)(x10_1)
-x11_1  = Tea(64)(x11_1)
-x12_1  = Tea(64)(x12_1)
-x13_1  = Tea(64)(x13_1)
-x14_1  = Tea(64)(x14_1)
-x15_1  = Tea(64)(x15_1)
-x16_1  = Tea(64)(x16_1)
-
-x17_1  = Tea(64)(x17_1)
-x18_1  = Tea(64)(x18_1)
-x19_1  = Tea(64)(x19_1)
-x20_1  = Tea(64)(x20_1)
-x21_1  = Tea(64)(x21_1)
-x22_1  = Tea(64)(x22_1)
-x23_1  = Tea(64)(x23_1)
-x24_1  = Tea(64)(x24_1)
-
-x1_1_1 = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
-x2_1_1 = Concatenate(axis=1)([x5_1,x6_1,x7_1,x8_1])
-x3_1_1 = Concatenate(axis=1)([x9_1,x10_1,x11_1,x12_1])
-x4_1_1 = Concatenate(axis=1)([x13_1,x14_1,x15_1,x16_1])
-x5_1_1 = Concatenate(axis=1)([x17_1,x18_1,x19_1,x20_1])
-x6_1_1 = Concatenate(axis=1)([x21_1,x22_1,x23_1,x24_1])
-
-x1_1 = Tea(128)(x1_1_1)
-x2_1 = Tea(128)(x2_1_1)
-x3_1 = Tea(128)(x3_1_1)
-x4_1 = Tea(128)(x4_1_1)
-x5_1 = Tea(128)(x5_1_1)
-x6_1 = Tea(128)(x6_1_1)
-
-x_out_1 = Concatenate(axis=1)([x1_1,x2_1])
-x_out_2 = Concatenate(axis=1)([x3_1,x4_1])
-x_out_3 = Concatenate(axis=1)([x5_1,x6_1])
-
-x_out_1 = Tea(252)(x_out_1)
-x_out_2 = Tea(252)(x_out_2)
-x_out_3 = Tea(252)(x_out_3)
-
-x_out = Concatenate(axis=1)([x_out_1,x_out_2,x_out_3])
-
-
-# x1_2  = Lambda(lambda x : x[:,   3 : 256 ])(flattened_inputs_2)
-# x2_2  = Lambda(lambda x : x[:, 185 : 441 ])(flattened_inputs_2)
-# x3_2  = Lambda(lambda x : x[:, 367 : 623 ])(flattened_inputs_2)
-# x4_2  = Lambda(lambda x : x[:, 549 : 805 ])(flattened_inputs_2)
-# x5_2  = Lambda(lambda x : x[:, 731 : 987 ])(flattened_inputs_2)
-# x6_2  = Lambda(lambda x : x[:, 913 : 1169])(flattened_inputs_2)
-# x7_2  = Lambda(lambda x : x[:, 1095: 1351])(flattened_inputs_2)
-# x8_2  = Lambda(lambda x : x[:, 1277: 1533])(flattened_inputs_2)
-
-# x1_2  = Tea(64)(x1_2)
-# x2_2  = Tea(64)(x2_2)
-# x3_2  = Tea(64)(x3_2)
-# x4_2  = Tea(64)(x4_2)
-# x5_2  = Tea(64)(x5_2)
-# x6_2  = Tea(64)(x6_2)
-# x7_2  = Tea(64)(x7_2)
-# x8_2  = Tea(64)(x8_2)
-
-# x1_2_2 = Concatenate(axis=1)([x1_2,x2_2,x3_2,x4_2])
-# x2_2_2 = Concatenate(axis=1)([x5_2,x6_2,x7_2,x8_2])
-
-# x1_2 = Tea(128)(x1_2_2)
-# x2_2 = Tea(128)(x2_2_2)
-
-# x_out_2 = Concatenate(axis=1)([x1_2,x2_2])
-# x_out_2 = Tea(252)(x_out_2)
-
-# x1_3  = Lambda(lambda x : x[:,   3 : 256 ])(flattened_inputs_3)
-# x2_3  = Lambda(lambda x : x[:, 185 : 441 ])(flattened_inputs_3)
-# x3_3  = Lambda(lambda x : x[:, 367 : 623 ])(flattened_inputs_3)
-# x4_3  = Lambda(lambda x : x[:, 549 : 805 ])(flattened_inputs_3)
-# x5_3  = Lambda(lambda x : x[:, 731 : 987 ])(flattened_inputs_3)
-# x6_3  = Lambda(lambda x : x[:, 913 : 1169])(flattened_inputs_3)
-# x7_3  = Lambda(lambda x : x[:, 1095: 1351])(flattened_inputs_3)
-# x8_3  = Lambda(lambda x : x[:, 1277: 1533])(flattened_inputs_3)
-
-# x1_3  = Tea(64)(x1_3)
-# x2_3  = Tea(64)(x2_3)
-# x3_3  = Tea(64)(x3_3)
-# x4_3  = Tea(64)(x4_3)
-# x5_3  = Tea(64)(x5_3)
-# x6_3  = Tea(64)(x6_3)
-# x7_3  = Tea(64)(x7_3)
-# x8_3  = Tea(64)(x8_3)
-
-# x1_3_3 = Concatenate(axis=1)([x1_3,x2_3,x3_3,x4_3])
-# x2_3_3 = Concatenate(axis=1)([x5_3,x6_3,x7_3,x8_3])
-
-# x1_3 = Tea(128)(x1_3_3)
-# x2_3 = Tea(128)(x2_3_3)
-
-# x_out_3 = Concatenate(axis=1)([x1_3,x2_3])
-# x_out_3 = Tea(252)(x_out_3)
-
-# x_out = Average()([x_out_1,x_out_2,x_out_3])
-
-x_out = AdditivePooling(9)(x_out)
+x_out = AdditivePooling(6)(x_out)
 
 predictions = Activation('softmax')(x_out)
 
@@ -269,11 +141,85 @@ model.compile(loss='categorical_crossentropy',
 
 model.fit(x_train, y_train,
           batch_size=64,
-          epochs=20,
+          epochs=10,
           verbose=1,
           validation_split=0.2)
 
 score = model.evaluate(x_test, y_test, verbose=0)
+model.summary()
+model.save_weights("blabla_2")
+
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+
+inputs = Input(shape=(64, 32,))
+# print(inputs)
+permute = Permute((2,1))(inputs)
+# print(permute)
+flattened_inputs = Flatten()(permute)
+
+flattened_inputs = Lambda(lambda x : x[:,128: 1920])(flattened_inputs)
+
+x1_1  = Lambda(lambda x : x[:,   3 : 259 ])(flattened_inputs)
+x2_1  = Lambda(lambda x : x[:, 105 : 361 ])(flattened_inputs)
+x3_1  = Lambda(lambda x : x[:, 207 : 463 ])(flattened_inputs)
+x4_1  = Lambda(lambda x : x[:, 309 : 565 ])(flattened_inputs)
+x5_1  = Lambda(lambda x : x[:, 411 : 667 ])(flattened_inputs)
+x6_1  = Lambda(lambda x : x[:, 513 : 769 ])(flattened_inputs)
+x7_1  = Lambda(lambda x : x[:, 615 : 871 ])(flattened_inputs)
+x8_1  = Lambda(lambda x : x[:, 717 : 973 ])(flattened_inputs)
+x9_1  = Lambda(lambda x : x[:, 819 : 1075])(flattened_inputs)
+x10_1  = Lambda(lambda x : x[:,921 : 1177])(flattened_inputs)
+x11_1  = Lambda(lambda x : x[:,1023: 1279])(flattened_inputs)
+x12_1  = Lambda(lambda x : x[:,1125: 1381])(flattened_inputs)
+x13_1  = Lambda(lambda x : x[:,1227: 1483])(flattened_inputs)
+x14_1  = Lambda(lambda x : x[:,1329: 1585])(flattened_inputs)
+x15_1  = Lambda(lambda x : x[:,1431: 1687])(flattened_inputs)
+x16_1  = Lambda(lambda x : x[:,1533: 1789])(flattened_inputs)
+
+x1_1_1  = Tea(64)(x1_1)
+x2_1_1  = Tea(64)(x2_1)
+x3_1_1  = Tea(64)(x3_1)
+x4_1_1  = Tea(64)(x4_1)
+x5_1_1  = Tea(64)(x5_1)
+x6_1_1  = Tea(64)(x6_1)
+x7_1_1  = Tea(64)(x7_1)
+x8_1_1  = Tea(64)(x8_1)
+x9_1_1  = Tea(64)(x9_1)
+x10_1_1  = Tea(64)(x10_1)
+x11_1_1  = Tea(64)(x11_1)
+x12_1_1  = Tea(64)(x12_1)
+x13_1_1  = Tea(64)(x13_1)
+x14_1_1  = Tea(64)(x14_1)
+x15_1_1  = Tea(64)(x15_1)
+x16_1_1  = Tea(64)(x16_1)
+
+x1_1 = Concatenate(axis=1)([x1_1_1,x2_1_1,x3_1_1,x4_1_1])
+x2_1 = Concatenate(axis=1)([x5_1_1,x6_1_1,x7_1_1,x8_1_1])
+x3_1 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
+x4_1 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
+
+x1_1 = Tea(64)(x1_1)
+x2_1 = Tea(64)(x2_1)
+x3_1 = Tea(64)(x3_1)
+x4_1 = Tea(64)(x4_1)
+
+x_out = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
+
+x_out = Tea(252)(x_out)
+
+x_out = AdditivePooling(6)(x_out)
+
+predictions = Activation('softmax')(x_out)
+
+saved_model= Model(inputs=inputs, outputs=predictions)
+
+saved_model.compile(loss='categorical_crossentropy',
+              optimizer=Adam(),
+              metrics=['accuracy'])
+
+saved_model.load_weights("blabla")
+score = saved_model.evaluate(x_test, y_test, verbose=0)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])

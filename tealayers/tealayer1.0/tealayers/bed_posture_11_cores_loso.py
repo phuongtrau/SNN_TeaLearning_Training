@@ -118,7 +118,7 @@ for sub in ls_train_full:
           # validation_split=0.2)
 
   score = model.evaluate(x_test, y_test, verbose=0)
-      
+  
   acc_per_so.append(score[1] * 100)
   loss_per_so.append(score[0])
   

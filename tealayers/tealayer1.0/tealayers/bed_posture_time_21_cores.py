@@ -26,7 +26,7 @@ from packet import Packet
 from additivepooling import AdditivePooling
 import helper
 from tea import Tea
-# import random
+import random
 from sklearn.utils import shuffle
 import cv2
 
@@ -51,20 +51,15 @@ x_test = test_data.samples.astype('float32')
 x_train /= 255
 x_test /= 255
 
-# cv2.imwrite("raw.jpg",train_data.samples[0])
-# img = cv2.equalizeHist(train_data.samples[0])
-# cv2.imwrite("test.jpg",img)
-
 y_train = to_categorical(train_data.labels, 17)
 y_test = to_categorical(test_data.labels, 17)
 
-# random.seed(0)
+random.seed(0)
 (x_train,y_train) = shuffle(x_train,y_train)
 # print(x_train_s,y_train_s)
-
+random.seed(0)
 (x_test,y_test) = shuffle(x_test,y_test)
 # print(x_train_s,y_train_s)
-
 
 time_win = 5
 filter_win = []
@@ -430,6 +425,7 @@ x3_5 = Tea(64)(x3_5_5)
 x4_5 = Tea(64)(x4_5_5)
 
 x_out_5 = Concatenate(axis=1)([x1_5,x2_5,x3_5,x4_5])
+
 x_out_5 = Tea(255)(x_out_5)
 
 x_out = Average()([x_out_1,x_out_2,x_out_3,x_out_4,x_out_5])

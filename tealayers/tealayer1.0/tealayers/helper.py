@@ -18,6 +18,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 
 import sys
+from scipy import ndimage
 
 # These functions are introduced along the Part 1 notebook.
 
@@ -32,12 +33,12 @@ positions_i = ["justAPlaceholder", "supine_1", "right_0",
                "supine_6", "right_fetus", "left_fetus",
                "supine_30", "supine_45", "supine_60"]
 
-# positions_i = ["justAPlaceholder", "supine", "right",
-#                "left", "right", "right",
-#                "left", "left", "supine",
-#                "supine", "supine", "supine",
-#                "supine", "right", "left",
-#                "supine", "supine", "supine"]
+positions_i_short = ["justAPlaceholder", "supine", "right",
+               "left", "right", "right",
+               "left", "left", "supine",
+               "supine", "supine", "supine",
+               "supine", "right", "left",
+               "supine", "supine", "supine"]
 
 positions_ii = {
     "B":"supine", "1":"supine", "C":"right",
@@ -55,14 +56,14 @@ class_positions = ['supine', 'left', 'right', 'left_fetus', 'right_fetus']
 # are not considered in the "Experiment I", we encode them also as left and right
 # positions.
 
-# def token_position(x):
-#   return {
-#       'supine': 0,
-#       'left': 1,
-#       'right': 2,
-#       'left_fetus': 1,
-#       'right_fetus': 2
-#   }[x]
+def token_position_short(x):
+  return {
+      'supine': 0,
+      'left': 1,
+      'right': 2,
+      'left_fetus': 1,
+      'right_fetus': 2
+  }[x]
 
 def token_position(x):
   return {
@@ -85,8 +86,36 @@ def token_position(x):
       "supine_60":16
   }[x]
 
+def token_position_new(x):
+  return {
+      "supine_1":0, 
+      "supine_2":1,
+      "supine_3":2, 
+      "supine_4":3, 
+      "supine_5":4,
+      "supine_6":5, 
+      "supine_30":6, 
+      "supine_45":7, 
+      "supine_60":8, 
+      "left_0":9, 
+      "left_30":10, 
+      "left_60":11,
+      "left_fetus":12, 
+      "right_0":13,
+      "right_30":14, 
+      "right_60":15,
+      "right_fetus":16, 
+  }[x]
 list_supine = ["1.txt","8.txt","9.txt","10.txt","11.txt","12.txt","15.txt","16.txt","17.txt"]
+
+list_supine_norm_1 = ["1.txt","8.txt","9.txt"]
+
+list_supine_norm_2 = ["10.txt","11.txt","12.txt"]
+
+list_supine_incl = ["15.txt","16.txt","17.txt"]
+
 list_left = ["3.txt","6.txt","7.txt","14.txt"]
+
 list_right = ["2.txt","4.txt","5.txt","13.txt"]
 
 def token_position_supine(x):
@@ -100,6 +129,27 @@ def token_position_supine(x):
       "supine_30":6, 
       "supine_45":7, 
       "supine_60":8
+    }[x]
+
+def token_position_supine_norm_1(x):
+  return {
+      "supine_1":0, 
+      "supine_2":1,
+      "supine_3":2, 
+    }[x]
+
+def token_position_supine_norm_2(x):
+  return {
+      "supine_4":0, 
+      "supine_5":1,
+      "supine_6":2, 
+    }[x]
+
+def token_position_supine_incl(x):
+  return {
+      "supine_30":0, 
+      "supine_45":1, 
+      "supine_60":2
     }[x]
 
 def token_position_left(x):
@@ -119,7 +169,83 @@ def token_position_right(x):
   }[x]
 
 
-def load_exp_i(path):
+def load_exp_i(path,preprocess=True):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      max_val = []
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            lines = f.read().splitlines()[2:]
+            for i in range(3, len(lines) - 3):
+                              
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                past_image = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                
+                # Spatio-temporal median filter 3x3x3
+                raw_data = ndimage.median_filter(raw_data, 3)
+                past_image = ndimage.median_filter(past_image, 3)
+                future_image = ndimage.median_filter(future_image, 3)
+                raw_data = np.concatenate((raw_data[np.newaxis, :, :], past_image[np.newaxis, :, :], future_image[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
+            
+            # with open(file_path, 'r') as f:
+            #   # Start from second recording, as the first two are corrupted
+            #   lines = f.read().splitlines()[2:]
+            #   for line in f.read().splitlines()[2:]:
+            #     # print(line)
+            #     raw_data = np.fromstring(line, dtype=float, sep='\t')
+                # Change the range from [0-1000] to [0-255].
+                  # max_val.append(np.amax(raw_data))
+              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              # file_data = np.round(raw_data).astype(np.uint8)
+              
+              file_data = file_data.reshape((1,64,32))
+              # print(positions_i[int(file[:-4])])
+              file_label = token_position(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+      
+      # max_over_all = max(max_val)
+      # print(max_over_all)
+
+      # data = np.round(data * 255/1000).astype(np.uint8)
+      dataset[subject] = (data, labels)
+
+  return dataset
+
+def load_exp_i_short(path):
   """
   Creates a numpy array for the data and labels.
   params:
@@ -152,7 +278,7 @@ def load_exp_i(path):
               file_data = np.round(raw_data*255/1000).astype(np.uint8)
               file_data = file_data.reshape((1,64,32))
               # print(positions_i[int(file[:-4])])
-              file_label = token_position(positions_i[int(file[:-4])])
+              file_label = token_position_short(positions_i_short[int(file[:-4])])
               # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
               file_label = np.array([file_label])
 
@@ -168,7 +294,7 @@ def load_exp_i(path):
       dataset[subject] = (data, labels)
   return dataset
 
-def load_exp_i_supine(path):
+def load_exp_i_supine(path,preprocess=True):
   """
   Creates a numpy array for the data and labels.
   params:
@@ -195,17 +321,93 @@ def load_exp_i_supine(path):
           file_path = os.path.join(path, directory, file)
           with open(file_path, 'r') as f:
             # Start from second recording, as the first two are corrupted
+            lines = f.read().splitlines()[2:]
+            for i in range(5, len(lines) - 5):
+                            
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                past_image_1 = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image_1 = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                past_image_2 = np.fromstring(lines[i-2], dtype=float, sep='\t').reshape(64, 32)
+                future_image_2 = np.fromstring(lines[i+2], dtype=float, sep='\t').reshape(64, 32)
+              
+                # Spatio-temporal median filter 5x5x5
+              
+                raw_data = ndimage.median_filter(raw_data, 3)
+                
+                past_image_1 = ndimage.median_filter(past_image_1, 3)
+                future_image_1 = ndimage.median_filter(future_image_1, 3)
+                past_image_2 = ndimage.median_filter(past_image_2, 3)
+                future_image_2 = ndimage.median_filter(future_image_2, 3)
+
+                raw_data = np.concatenate((past_image_2[np.newaxis, :, :],past_image_1[np.newaxis, :, :] ,raw_data[np.newaxis, :, :], \
+                future_image_1[np.newaxis, :, :],future_image_2[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
+              
+              # a=np.amax(raw_data)
+
+              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              
+              # file_data = np.round(raw_data).astype(np.uint8)
+              
+              file_data = file_data.reshape((1,64,32))
+
+              file_label = token_position_supine(positions_i[int(file[:-4])])
+              
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+
+      dataset[subject] = (data, labels)
+  return dataset
+
+def load_exp_i_supine_norm_1(path):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        files = list_supine_norm_1
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            # Start from second recording, as the first two are corrupted
             for line in f.read().splitlines()[2:]:
               # print(line)
               raw_data = np.fromstring(line, dtype=float, sep='\t')
               # Change the range from [0-1000] to [0-255].
-              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              max_val = np.amax(raw_data)
+              file_data = np.round(raw_data*255/max_val).astype(np.uint8)
               
               # file_data = np.round(raw_data).astype(float)
               
               file_data = file_data.reshape((1,64,32))
 
-              file_label = token_position_supine(positions_i[int(file[:-4])])
+              file_label = token_position_supine_norm_1(positions_i[int(file[:-4])])
               # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
               file_label = np.array([file_label])
 
@@ -221,7 +423,128 @@ def load_exp_i_supine(path):
       dataset[subject] = (data, labels)
   return dataset
 
-def load_exp_i_left(path):
+def load_exp_i_supine_norm_2(path):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        files = list_supine_norm_2
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            # Start from second recording, as the first two are corrupted
+            for line in f.read().splitlines()[2:]:
+              # print(line)
+              raw_data = np.fromstring(line, dtype=float, sep='\t')
+              # Change the range from [0-1000] to [0-255].
+              max_val = np.amax(raw_data)
+              file_data = np.round(raw_data*255/max_val).astype(np.uint8)
+              
+              # file_data = np.round(raw_data).astype(float)
+              
+              file_data = file_data.reshape((1,64,32))
+
+              file_label = token_position_supine_norm_2(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+
+      dataset[subject] = (data, labels)
+  return dataset
+
+def load_exp_i_supine_incl(path,preprocess=True):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
+
+  dataset = {}
+
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        files = list_supine_incl
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            # Start from second recording, as the first two are corrupted
+            # with open(file_path, 'r') as f:
+            lines = f.read().splitlines()[2:]
+            for i in range(3, len(lines) - 3):
+
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                  past_image = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                  future_image = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                  
+                  # Spatio-temporal median filter 3x3x3
+                  raw_data = ndimage.median_filter(raw_data, 3)
+                  past_image = ndimage.median_filter(past_image, 3)
+                  future_image = ndimage.median_filter(future_image, 3)
+                  raw_data = np.concatenate((raw_data[np.newaxis, :, :], past_image[np.newaxis, :, :], future_image[np.newaxis, :, :]), axis=0)
+                  raw_data = np.median(raw_data, axis=0)
+
+              # Change the range from [0-1000] to [0-255].
+              # max_vol = np.amax(raw_data)
+              file_data = np.round(raw_data ).astype(np.uint8)
+
+              # file_data = np.round(raw_data).astype(np.uint8)
+              file_data = file_data.reshape(1, 64, 32)
+
+              file_label = token_position_supine_incl(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
+
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+
+      dataset[subject] = (data, labels)
+  return dataset
+
+def load_exp_i_left(path,preprocess=True):
   """
   Creates a numpy array for the data and labels.
   params:
@@ -248,10 +571,36 @@ def load_exp_i_left(path):
           file_path = os.path.join(path, directory, file)
           with open(file_path, 'r') as f:
             # Start from second recording, as the first two are corrupted
-            for line in f.read().splitlines()[2:]:
-              # print(line)
-              raw_data = np.fromstring(line, dtype=float, sep='\t')
-              # Change the range from [0-1000] to [0-255].
+            lines = f.read().splitlines()[2:]
+            for i in range(5, len(lines) - 5):
+                            
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                past_image_1 = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image_1 = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                past_image_2 = np.fromstring(lines[i-2], dtype=float, sep='\t').reshape(64, 32)
+                future_image_2 = np.fromstring(lines[i+2], dtype=float, sep='\t').reshape(64, 32)
+              
+                # Spatio-temporal median filter 5x5x5
+              
+                raw_data = ndimage.median_filter(raw_data, 3)
+                
+                past_image_1 = ndimage.median_filter(past_image_1, 3)
+                future_image_1 = ndimage.median_filter(future_image_1, 3)
+                past_image_2 = ndimage.median_filter(past_image_2, 3)
+                future_image_2 = ndimage.median_filter(future_image_2, 3)
+
+                raw_data = np.concatenate((past_image_2[np.newaxis, :, :],past_image_1[np.newaxis, :, :] ,raw_data[np.newaxis, :, :], \
+                future_image_1[np.newaxis, :, :],future_image_2[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
+          # with open(file_path, 'r') as f:
+          #   # Start from second recording, as the first two are corrupted
+          #   for line in f.read().splitlines()[2:]:
+          #     # print(line)
+          #     raw_data = np.fromstring(line, dtype=float, sep='\t')
+          #     # Change the range from [0-1000] to [0-255].
+
               file_data = np.round(raw_data*255/1000).astype(np.uint8)
               
 
@@ -323,25 +672,81 @@ def load_exp_i_right(path):
       dataset[subject] = (data, labels)
   return dataset
 
+def load_exp_i_new(path,preprocess=True):
+  """
+  Creates a numpy array for the data and labels.
+  params:
+  ------
+  path    -- Data path.
+  returns:
+  -------
+  A numpy array (data, labels).
+  """
 
+  dataset = {}
 
-# Both air and sponge mattresses used in the data collection have a different
-# size (64 x 27), opposed to the pressure mattress (64 x 32) used in the first
-# experiment. Additionally, the image is rotated by 180 degrees with respect to
-# the experiment one images.
-# This function serves to set the format of the images equal to the ones taken
-# by the pressure mat.
+  for _, dirs, _ in os.walk(path):
+    for directory in dirs:
+      # each directory is a subject
+      subject = directory
+      data = None
+      labels = None
+      max_val = []
+      for _, _, files in os.walk(os.path.join(path, directory)):
+        # print(files)
+        for file in files:
+          # print(file)
+          file_path = os.path.join(path, directory, file)
+          with open(file_path, 'r') as f:
+            lines = f.read().splitlines()[2:]
+            for i in range(3, len(lines) - 3):
+                              
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                past_image = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                
+                # Spatio-temporal median filter 3x3x3
+                raw_data = ndimage.median_filter(raw_data, 3)
+                past_image = ndimage.median_filter(past_image, 3)
+                future_image = ndimage.median_filter(future_image, 3)
+                raw_data = np.concatenate((raw_data[np.newaxis, :, :], past_image[np.newaxis, :, :], future_image[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
+            
+            # with open(file_path, 'r') as f:
+            #   # Start from second recording, as the first two are corrupted
+            #   lines = f.read().splitlines()[2:]
+            #   for line in f.read().splitlines()[2:]:
+            #     # print(line)
+            #     raw_data = np.fromstring(line, dtype=float, sep='\t')
+                # Change the range from [0-1000] to [0-255].
+                  # max_val.append(np.amax(raw_data))
+              file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              # file_data = np.round(raw_data).astype(np.uint8)
+              
+              file_data = file_data.reshape((1,64,32))
+              # print(positions_i[int(file[:-4])])
+              file_label = token_position_new(positions_i[int(file[:-4])])
+              # print("directory: ",directory,"file_name: " ,file,"file_label: ",file_label)
+              file_label = np.array([file_label])
 
-# def resize_and_rotate(image):
-#   To_PIL_and_Resize = transforms.Compose([
-#                       transforms.ToPILImage(),
-#                       transforms.Resize((64, 32))
-#                       ])
+              if data is None:
+                data = file_data
+              else:
+                data = np.concatenate((data, file_data), axis=0)
+              if labels is None:
+                labels = file_label
+              else:
+                labels = np.concatenate((labels, file_label), axis=0)
+      
+      # max_over_all = max(max_val)
+      # print(max_over_all)
 
-#   rotated = TF.rotate(To_PIL_and_Resize(image), angle=180)
+      # data = np.round(data * 255/1000).astype(np.uint8)
+      dataset[subject] = (data, labels)
 
-#   return transforms.ToTensor()(rotated)
-
+  return dataset
 
 def load_exp_ii(path):
 
@@ -396,135 +801,6 @@ def load_exp_ii(path):
 
     return exp_ii_data_air, exp_ii_data_spo
 
-### Leave-one-subject-out Cross Validation (used on Part 2)
-
-# def exp_i_cv():
-#   subjects_i = ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
-#                 "S8", "S9", "S10", "S11", "S12", "S13"]
-
-#   print("Performing one-subject-out cross validation on 'Experiment I':")
-
-#   torch.manual_seed(123)
-
-#   accuracies = []
-
-#   for subject in subjects_i:
-#     remaining_subjects = subjects_i.copy()
-#     remaining_subjects.remove(subject)
-
-#     trainset_exp_i = Mat_Dataset(["Base"], remaining_subjects)
-#     valset_exp_i = Mat_Dataset(["Base"], [subject])
-
-#     trainloader = DataLoader(trainset_exp_i, batch_size=64, shuffle=True)
-#     testloader = DataLoader(valset_exp_i, batch_size=64, shuffle=False)
-
-#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-#     model = CNN()
-
-#     criterion = nn.NLLLoss()
-
-#     optimizer = optim.Adam(model.parameters(), lr = 0.001)
-
-#     model.to(device)
-
-#     epochs = 5
-#     running_loss = 0
-
-#     train_losses, test_losses = [], []
-
-#     for epoch in range(epochs):
-#       for inputs, labels in trainloader:
-
-#         inputs, labels = inputs.to(device), labels.to(device)
-
-#         optimizer.zero_grad()
-
-#         logps = model.forward(inputs)
-#         loss = criterion(logps, labels)
-#         loss.backward()
-#         optimizer.step()
-
-#         running_loss += loss.item()
-
-#       else:
-
-#         test_loss = 0
-#         accuracy = 0
-#         model.eval()
-
-#         with torch.no_grad():
-#           for inputs, labels in testloader:
-#             inputs, labels = inputs.to(device), labels.to(device)
-#             logps = model.forward(inputs)
-#             test_loss += criterion(logps, labels)
-
-#             ps = torch.exp(logps)
-#             top_p, top_class = ps.topk(1, dim=1)
-#             equals = top_class == labels.view(*top_class.shape)
-#             accuracy += torch.mean(equals.type(torch.FloatTensor))
-
-#         train_losses.append(running_loss/len(trainloader))
-#         test_losses.append(test_loss/len(testloader))
-
-#         accuracy = accuracy/len(testloader)
-#         if (epoch + 1) == epochs:
-#           print(f"Leave out: {subject} - "
-#                 f"Test accuracy: {accuracy:.3f}")
-#         running_loss = 0
-#         model.train()
-
-#     accuracies.append(accuracy)
-#   print(f"Results, one-subject-out cross validation: accuracy: {np.mean(accuracies)}")
-
-# def train_all_exp_i():
-#   subjects_i = ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
-#                 "S8", "S9", "S10", "S11", "S12", "S13"]
-
-#   torch.manual_seed(123)
-
-#   trainset_exp_i = Mat_Dataset(["Base"], subjects_i)
-
-#   trainloader = DataLoader(trainset_exp_i, batch_size=64, shuffle=True)
-
-#   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-#   model = CNN()
-
-#   criterion = nn.NLLLoss()
-
-#   optimizer = optim.Adam(model.parameters(), lr = 0.001)
-
-#   model.to(device)
-
-#   epochs = 5
-#   running_loss = 0
-
-#   train_losses = []
-
-#   for epoch in range(epochs):
-#     for inputs, labels in trainloader:
-
-#       inputs, labels = inputs.to(device), labels.to(device)
-
-#       optimizer.zero_grad()
-
-#       logps = model.forward(inputs)
-#       loss = criterion(logps, labels)
-#       loss.backward()
-#       optimizer.step()
-
-#       running_loss += loss.item()
-#       train_losses.append(running_loss/len(trainloader))
-#       if (epoch + 1) == epochs:
-#         print(f"Leave out: {subject} - "
-#               f"Test accuracy: {accuracy:.3f}")
-#       running_loss = 0
-#       model.train()
-
-#       return model, train_losses
-
-# # Custom class introduced on Part 2
 import cv2 
 
 class Mat_Dataset():
@@ -547,69 +823,3 @@ class Mat_Dataset():
   def __getitem__(self, idx):
     return self.samples[idx], self.labels[idx]
 
-# # CNN model introduced in Part 2
-
-# class CNN(nn.Module):
-
-#   def __init__(self):
-#     super().__init__()
-
-#     ## Convolutional Layers
-#     #Input channels = 1, output channels = 6
-#     self.conv1 = torch.nn.Conv2d(1, 6, kernel_size=3, stride=1, padding=1)
-#     #Input channels = 6, output channels = 18
-#     self.conv2 = torch.nn.Conv2d(6, 18, kernel_size=3, stride=1, padding=1)
-
-#     ## Pool Layer
-#     self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-#     ## Mulit-Layer Perceptron
-#     # Hidden layers
-#     self.h1 = nn.Linear(18 * 16 * 8, 392)
-#     self.h2 = nn.Linear(392, 98)
-
-#     # Output layer, 3 neurons - one for each position
-#     self.output = nn.Linear(98, 3)
-
-#     # ReLU activation and softmax output
-#     self.relu = nn.ReLU()
-#     self.logsoftmax = nn.LogSoftmax(dim=1)
-
-#   def forward(self, x):
-
-#     x = x.float()
-#     # Add a "channel dimension"
-#     x = x.unsqueeze(1)
-
-#     ## Computation on convolutional and pool layers:
-#     # Size changes from (1, 64, 32) to (6, 64, 32)
-#     x = F.relu(self.conv1(x))
-#     # Size changes from (6, 64, 32) to (6, 32, 16)
-#     x = self.pool(x)
-#     # Size changes from (6, 32, 16) to (18, 32, 16)
-#     x = F.relu(self.conv2(x))
-#     # Size changes from (18, 32, 16) to (18, 16, 8)
-#     x = self.pool(x)
-
-#     # Reshape data to input to the input layer of the MLP
-#     # Size changes from (18, 16, 8) to (1, 2304)
-#     x = x.view(x.shape[0], -1)
-
-#     ## Computation on the MLP layers:
-#     x = self.h1(x)
-#     x = self.relu(x)
-#     x = self.h2(x)
-#     x = self.relu(x)
-#     x = self.output(x)
-#     x = self.logsoftmax(x)
-
-#     return x
-
-# exp_i_data = load_exp_i("dataset/experiment-i")
-# exp_ii_data_air, exp_ii_data_spo = load_exp_ii("dataset/experiment-ii")
-
-# datasets = {
-#     "Base":exp_i_data,
-#     "Spo":exp_ii_data_air,
-#     "Air":exp_ii_data_spo
-# }

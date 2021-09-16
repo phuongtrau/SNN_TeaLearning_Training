@@ -32,7 +32,7 @@ from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import cv2
 
-exp_i_data = helper.load_exp_i("../dataset/experiment-i")
+exp_i_data = helper.load_exp_i_short("../dataset/experiment-i")
 
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
@@ -43,12 +43,8 @@ acc_per_so = []
 loss_per_so = []
 ls_train_full = subjects.copy()
 for sub in ls_train_full:
-  # ls_train_full = subjects.copy() 
-  # print(ls_train_full)
-  # print(sub)
+
   subjects.remove(sub)
-  # print(subjects)
-  # train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"])
   train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
   test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
   
@@ -146,14 +142,15 @@ for sub in ls_train_full:
   print('------------------------------------------------------------------------')
   print(f'Training for subject {sub} ...')
 
-  model.fit(x_train, y_train,
-          batch_size=64,
-          epochs=20,
-          verbose=1,)
-          # validation_split=0.2)
-
+  # model.fit(x_train, y_train,
+  #         batch_size=64,
+  #         epochs=25,
+  #         verbose=1,)
+  #         # validation_split=0.2)
+  model.load_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
   score = model.evaluate(x_test, y_test, verbose=0)
-      
+  # if score[1] >= 0.99:
+  #   model.save_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
   acc_per_so.append(score[1] * 100)
   loss_per_so.append(score[0])
   
@@ -175,6 +172,10 @@ print('Average scores for all subject out:')
 print(f'> Accuracy: {np.mean(acc_per_so)} (+- {np.std(acc_per_so)})')
 print(f'> Loss: {np.mean(loss_per_so)}')
 print('------------------------------------------------------------------------')
+
+for i in range(0, len(acc_per_so)):
+  print(f'{acc_per_so[i]}%')
+print(f'Accuracy: {np.mean(acc_per_so)}%')
 
 # weights , biases = get_connections_and_biases(model,11)
 
