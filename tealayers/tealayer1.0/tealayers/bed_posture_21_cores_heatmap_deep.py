@@ -26,7 +26,7 @@ from packet import Packet
 from additivepooling import AdditivePooling
 import helper
 from tea import Tea
-# import random
+import random
 from sklearn.utils import shuffle
 import cv2
 
@@ -40,8 +40,9 @@ kernel_ero = np.ones((3,3),np.uint8)
 kernel_dil = np.ones((5,5),np.uint8)
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
-
-train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S3","S4","S5","S2","S8","S9","S10","S11","S12","S13","S6"])
+list_train = ["S1","S3","S4","S5","S2","S8","S9","S10","S11","S12","S13","S7"]
+random.shuffle(list_train)
+train_data = helper.Mat_Dataset(datasets,["Base"],list_train)
 
 x_train = []
 
@@ -58,7 +59,7 @@ for i in range(len(train_data.samples)):
     x_train.append(bin_out)
  
     
-test_data = helper.Mat_Dataset(datasets,["Base"],["S7"])
+test_data = helper.Mat_Dataset(datasets,["Base"],["S6"])
 
 x_test = []
 
@@ -464,12 +465,12 @@ model = Model(inputs=inputs, outputs=predictions)
 #     decay_rate=0.9)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.005),
+              optimizer=Adam(),
               metrics=['accuracy'])
 
 # callback = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=50)
 
-checkpoint_filepath = 'bed_posture/ckpt_2/9_class_deep-S7-epoch-{epoch}'
+checkpoint_filepath = 'bed_posture/ckpt_2/9_class_deep-S6-epoch-{epoch}'
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
@@ -479,11 +480,11 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_freq = "epoch",)
     # save_best_only=True)
 
-# model.load_weights("bed_posture/ckpt_supine/9_class_deep-S7")
+# model.load_weights("bed_posture/ckpt_supine/9_class_deep-S6")
 
 # model.fit(x_train, y_train,
-#           batch_size=256,
-#           epochs=200,
+#           batch_size=1024,
+#           epochs=100,
 #           verbose=1,
 #           callbacks=[model_checkpoint_callback],
 #           validation_split=0.2)
@@ -491,7 +492,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 import os
 scores = []
 soure = "bed_posture/ckpt_2"
-ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S7" in e]
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S6" in e]
 for ckpt in ckpts:
     print("======================================")
     print(ckpt)

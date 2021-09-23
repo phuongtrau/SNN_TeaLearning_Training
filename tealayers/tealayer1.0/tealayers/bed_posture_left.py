@@ -40,8 +40,9 @@ exp_i_data = helper.load_exp_i_left("../dataset/experiment-i")
 # kernel = np.ones((3,3),np.uint8)*200
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
-
-train_data = helper.Mat_Dataset(datasets,["Base"],["S12","S3","S4","S9","S6","S5","S7","S8","S1","S11","S10","S13"])
+list_train = ["S7","S8","S12","S6","S9","S1","S3","S11","S10","S4","S5","S13",]
+random.shuffle(list_train)
+train_data = helper.Mat_Dataset(datasets,["Base"],list_train)
 # kernel = np.ones((5,5),np.uint8)
 x_train = []
 for i in range(len(train_data.samples)):
@@ -396,7 +397,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.0005),
+              optimizer=Adam(),
               metrics=['accuracy'])
 
 checkpoint_filepath = 'bed_posture/ckpt/4_class_deep-S2-epoch-{epoch}'
@@ -406,14 +407,14 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_weights_only=True,
     save_freq = "epoch",)
 
-model.load_weights("bed_posture/ckpt_left/4_class_deep-S2")
+# model.load_weights("bed_posture/ckpt_left/4_class_deep-S2")
 
-model.fit(x_train, y_train,
-          batch_size=512,
-          epochs=100,
-          verbose=1,
-          callbacks=[model_checkpoint_callback],
-          validation_split=0.2)
+# model.fit(x_train, y_train,
+#           batch_size=1024,
+#           epochs=100,
+#           verbose=1,
+#           callbacks=[model_checkpoint_callback],
+#           validation_split=0.2)
 
 soure = "bed_posture/ckpt"
 scores = []

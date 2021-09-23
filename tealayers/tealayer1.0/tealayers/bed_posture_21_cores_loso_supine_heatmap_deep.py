@@ -470,12 +470,10 @@ for sub in ls_train_full:
   #         # callbacks=[callback],
   #         verbose=1,)
           # validation_split=0.2)
-
+  
   model.load_weights("bed_posture/ckpt_supine/9_class_deep-{}".format(sub))
   # model.load_weights("bed_posture/ckpt_supine/9_class_deep-S12")
-  score = model.evaluate(x_test, y_test, verbose=0)
-  # if score[1] >= 0.75:
-  #   model.save_weights("bed_posture/ckpt_supine/9_class_deep-{}-acc-{}".format(sub,str(score[1])))    
+  score = model.evaluate(x_test, y_test, verbose=0)  
   acc_per_so.append(score[1] * 100)
   loss_per_so.append(score[0])
   
@@ -483,8 +481,6 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
-
-  # fold_no = fold_no + 1
 
 # == Provide average scores ==
 print('------------------------------------------------------------------------')
@@ -501,12 +497,3 @@ print('------------------------------------------------------------------------'
 for i in range(0, len(acc_per_so)):
   print(f'{acc_per_so[i]}%')
 print(f'Accuracy: {np.mean(acc_per_so)}%')
-# weights , biases = get_connections_and_biases(model,11)
-
-# from output_bus import OutputBus
-# from serialization import save as sim_save
-# from emulation import write_cores
-
-# cores_sim = create_cores(model, 11,neuron_reset_type=0 ) 
-
-# write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/output_mem_bed_posture")

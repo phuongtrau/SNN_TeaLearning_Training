@@ -148,9 +148,10 @@ for sub in ls_train_full:
   #         verbose=1,)
   #         # validation_split=0.2)
   model.load_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
+  # model.load_weights("bed_posture/ckpt_3_classes/3_class-S8_1")
+  
   score = model.evaluate(x_test, y_test, verbose=0)
-  # if score[1] >= 0.99:
-  #   model.save_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
+
   acc_per_so.append(score[1] * 100)
   loss_per_so.append(score[0])
   

@@ -12,10 +12,11 @@ from keras import Model
 from keras.engine.topology import Layer
 from keras import initializers
 from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate,Average,Permute,Multiply
+from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate, Average, Permute, Multiply
 from keras.datasets import mnist,fashion_mnist
 from keras.optimizers import Adam
 from keras.utils import to_categorical
+from keras import backend as K
 import sys
 sys.path.append("../../../rancutils/rancutils")
 
@@ -112,16 +113,20 @@ for sub in ls_train_full:
     x_test_right = np.array(x_test)
 
 #### 3_Classes ####
-
+    
+    x_test_3_class=[]
     for i in range(len(test_data_right.samples)):
-        test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-
-    x_test_3_class = test_data.samples.astype('float32')
+        # test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
+        x_test_3_class.append(cv2.equalizeHist(test_data.samples[i]))
+    
+    x_test_3_class = np.array(x_test_3_class).astype('float32')
+    # x_test_3_class = test_data.samples.astype('float32')
+    
     x_test_3_class /= 255
 
 #### Label ####
 
-    y_test = to_categorical(test_data.labels, 17)
+    y_test = to_categorical(test_data_right.labels, 17)
 
 #### MODEL ####
 #### Model 3 Classes #### 
@@ -1160,20 +1165,21 @@ for sub in ls_train_full:
 
 #### Compine Model ####
 
-    model_3_classes.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
-              metrics=['accuracy'])
-    model_supine.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
-              metrics=['accuracy'])
-    model_left.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
-              metrics=['accuracy'])
-    model_right.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
-              metrics=['accuracy'])
+    # model_3_classes.compile(loss='categorical_crossentropy',
+    #           optimizer=Adam(),
+    #           metrics=['accuracy'])
+    # model_supine.compile(loss='categorical_crossentropy',
+    #           optimizer=Adam(),
+    #           metrics=['accuracy'])
+    # model_left.compile(loss='categorical_crossentropy',
+    #           optimizer=Adam(),
+    #           metrics=['accuracy'])
+    # model_right.compile(loss='categorical_crossentropy',
+    #           optimizer=Adam(),
+    #           metrics=['accuracy'])
 
 #### Load_weight #### 
+
     model_3_classes.load_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
     model_supine.load_weights("bed_posture/ckpt_supine/9_class_deep-{}".format(sub))
     model_left.load_weights("bed_posture/ckpt_left/4_class_deep-{}".format(sub))
@@ -1181,9 +1187,15 @@ for sub in ls_train_full:
 
 #### Merge Output ####
     
-    lambda_supine = Lambda(lambda x : x[:,0])(model_3_classes.output)
-    lambda_left = Lambda(lambda x : x[:,1])(model_3_classes.output)
-    lambda_right = Lambda(lambda x : x[:,2])(model_3_classes.output)
+    mx = K.max(model_3_classes.output,axis=1,keepdims=False)
+    
+    lambda_supine = Lambda (lambda x: K.cast(K.equal(x[:,0],mx),'float32'))(model_3_classes.output)
+    lambda_left = Lambda (lambda x: K.cast(K.equal(x[:,1],mx),'float32'))(model_3_classes.output)
+    lambda_right = Lambda(lambda x: K.cast(K.equal(x[:,2],mx),'float32'))(model_3_classes.output)
+
+    # lambda_supine = Lambda(lambda x : x[:,0])(model_3_classes.output)
+    # lambda_left = Lambda(lambda x : x[:,1])(model_3_classes.output)
+    # lambda_right = Lambda(lambda x : x[:,2])(model_3_classes.output)
 
     out_supine = Multiply()([model_supine.output,lambda_supine])
     out_left = Multiply()([model_left.output,lambda_left])
@@ -1191,9 +1203,13 @@ for sub in ls_train_full:
 
     predictions_all = Concatenate(axis=1)([out_supine,out_left,out_right])
     
-    # print(predictions_all)
+    # pre_max = K.max(predictions_all,axis=1,keepdims=False)
+    # lambda_all = Lambda (lambda x: K.cast(K.equal(x[:,:],pre_max),'float32'))(predictions_all)
 
-    model_all = Model(inputs=[ model_3_classes.input, model_supine.input, model_left.input, model_right.input], outputs= [predictions_all])
+    # predictions_all= Multiply()([predictions_all,lambda_all])
+    
+    model_all = Model(inputs=[model_3_classes.input, model_supine.input, model_left.input, model_right.input], outputs= [predictions_all])
+    
     print('------------------------------------------------------------------------')
     print(f'Training for subject {sub} ...')
     

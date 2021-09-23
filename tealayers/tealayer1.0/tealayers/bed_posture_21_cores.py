@@ -39,11 +39,11 @@ exp_i_data = helper.load_exp_i_short("../dataset/experiment-i")
 
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
-train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S3","S9","S10","S11","S4","S7","S5","S6","S12","S2","S13"])
+train_data = helper.Mat_Dataset(datasets,["Base"],["S3","S6","S5","S9","S11","S13","S2","S1","S8","S10","S12","S7",])
 for i in range(len(train_data.samples)):
     train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
     
-test_data = helper.Mat_Dataset(datasets,["Base"],["S8"])
+test_data = helper.Mat_Dataset(datasets,["Base"],["S4"])
 for i in range(len(test_data.samples)):
     test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
 
@@ -56,10 +56,10 @@ x_test /= 255
 y_train = to_categorical(train_data.labels, 3)
 y_test = to_categorical(test_data.labels, 3)
 
-random.seed(0)
+random.seed(2)
 (x_train,y_train) = shuffle(x_train,y_train)
 # print(x_train_s,y_train_s)
-random.seed(0)
+# random.seed(2)
 (x_test,y_test) = shuffle(x_test,y_test)
 # print(x_train_s,y_train_s)
 
@@ -137,10 +137,10 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
+              optimizer=Adam(lr=0.001),
               metrics=['accuracy'])
 
-checkpoint_filepath = 'bed_posture/ckpt/3_class-S8-epoch-{epoch}'
+checkpoint_filepath = 'bed_posture/ckpt/3_class-S4-epoch-{epoch}'
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
@@ -150,20 +150,20 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_freq = "epoch",)
     # save_best_only=True)
 
-# model.load_weights("bed_posture/ckpt_3_classes/3_class-S8")
+model.load_weights("bed_posture/ckpt_3_classes/3_class-S4")
 
-# model.fit(x_train, y_train,
-#           batch_size=64,
-#           epochs=100,
-#           verbose=1,
-#           callbacks=[model_checkpoint_callback],
-#           validation_split=0.2)
+model.fit(x_train, y_train,
+          batch_size=1024,
+          epochs=60,
+          verbose=1,
+          callbacks=[model_checkpoint_callback],
+          validation_split=0.2)
 
 # model.load_weights("bed_posture/ckpt_3_classes/3_class-S5_1")
 import os
 scores = []
 soure = "bed_posture/ckpt"
-ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S8" in e]
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S4" in e]
 for ckpt in ckpts:
     print("======================================")
     print(ckpt)
