@@ -56,9 +56,9 @@ for sub in ls_train_full:
 
     for i in range(len(test_data.samples)):
 
-        test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
+        samples_i = cv2.equalizeHist(test_data.samples[i])
         
-        heat = cv2.applyColorMap(test_data.samples[i], cv2.COLORMAP_JET)
+        heat = cv2.applyColorMap(samples_i, cv2.COLORMAP_JET)
         mask = np.ones_like(heat)
         bin1 = np.array(heat>=mask*63).astype(np.uint8)
         bin2 = np.array(heat>=mask*127).astype(np.uint8)
@@ -95,17 +95,17 @@ for sub in ls_train_full:
     x_test = []
 
     for i in range(len(test_data_right.samples)):
-        mask = np.ones_like(test_data.samples[i])
+        mask = np.ones_like(test_data_right.samples[i])
         
-        test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
+        test_data_right.samples[i] = cv2.equalizeHist(test_data_right.samples[i])
 
-        e_1 = np.array(test_data.samples[i]>=mask*31).astype(float)
-        e_2 = np.array(test_data.samples[i]>=mask*63).astype(float)
-        e_3 = np.array(test_data.samples[i]>=mask*95).astype(float)
-        e_4 = np.array(test_data.samples[i]>=mask*127).astype(float)
-        e_5 = np.array(test_data.samples[i]>=mask*159).astype(float)
-        e_6 = np.array(test_data.samples[i]>=mask*191).astype(float)
-        e_7 = np.array(test_data.samples[i]>=mask*223).astype(float)
+        e_1 = np.array(test_data_right.samples[i]>=mask*31).astype(float)
+        e_2 = np.array(test_data_right.samples[i]>=mask*63).astype(float)
+        e_3 = np.array(test_data_right.samples[i]>=mask*95).astype(float)
+        e_4 = np.array(test_data_right.samples[i]>=mask*127).astype(float)
+        e_5 = np.array(test_data_right.samples[i]>=mask*159).astype(float)
+        e_6 = np.array(test_data_right.samples[i]>=mask*191).astype(float)
+        e_7 = np.array(test_data_right.samples[i]>=mask*223).astype(float)
         # print(e_1[:,:,np.newaxis].shape)
         x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                     e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
@@ -116,8 +116,8 @@ for sub in ls_train_full:
     
     x_test_3_class=[]
     for i in range(len(test_data_right.samples)):
-        # test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-        x_test_3_class.append(cv2.equalizeHist(test_data.samples[i]))
+        # test_data.samples[i] = cv2.equalizeHist(test_data_right.samples[i])
+        x_test_3_class.append(test_data_right.samples[i])
     
     x_test_3_class = np.array(x_test_3_class).astype('float32')
     # x_test_3_class = test_data.samples.astype('float32')
@@ -1187,15 +1187,15 @@ for sub in ls_train_full:
 
 #### Merge Output ####
     
-    mx = K.max(model_3_classes.output,axis=1,keepdims=False)
+    # mx = K.max(model_3_classes.output,axis=1,keepdims=False)
     
-    lambda_supine = Lambda (lambda x: K.cast(K.equal(x[:,0],mx),'float32'))(model_3_classes.output)
-    lambda_left = Lambda (lambda x: K.cast(K.equal(x[:,1],mx),'float32'))(model_3_classes.output)
-    lambda_right = Lambda(lambda x: K.cast(K.equal(x[:,2],mx),'float32'))(model_3_classes.output)
+    # lambda_supine = Lambda (lambda x: K.cast(K.equal(x[:,0],mx),'float32'))(model_3_classes.output)
+    # lambda_left = Lambda (lambda x: K.cast(K.equal(x[:,1],mx),'float32'))(model_3_classes.output)
+    # lambda_right = Lambda(lambda x: K.cast(K.equal(x[:,2],mx),'float32'))(model_3_classes.output)
 
-    # lambda_supine = Lambda(lambda x : x[:,0])(model_3_classes.output)
-    # lambda_left = Lambda(lambda x : x[:,1])(model_3_classes.output)
-    # lambda_right = Lambda(lambda x : x[:,2])(model_3_classes.output)
+    lambda_supine = Lambda(lambda x : x[:,0])(model_3_classes.output)
+    lambda_left = Lambda(lambda x : x[:,1])(model_3_classes.output)
+    lambda_right = Lambda(lambda x : x[:,2])(model_3_classes.output)
 
     out_supine = Multiply()([model_supine.output,lambda_supine])
     out_left = Multiply()([model_left.output,lambda_left])
@@ -1216,8 +1216,6 @@ for sub in ls_train_full:
     model_all.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
-    
-    # model_all.summary()
     
     score = model_all.evaluate([x_test_3_class,x_test_supine,x_test_left,x_test_right], [y_test], verbose=0)       
     
