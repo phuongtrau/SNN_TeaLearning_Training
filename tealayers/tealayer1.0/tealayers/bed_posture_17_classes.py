@@ -38,15 +38,16 @@ exp_i_data_right = helper.load_exp_i_new("../dataset/experiment-i",preprocess=Fa
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
 datasets_right = {"Base":exp_i_data_right}
-
+list_train = ["S1","S10","S7","S11","S2","S12","S3","S13","S4","S9","S5","S8",]
+random.shuffle(list_train)
 # subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
-sub="S4"
+sub="S6"
 
-train_data = helper.Mat_Dataset(datasets,["Base"],["S3","S6","S5","S9","S11","S13","S2","S1","S8","S10","S12","S7",])
-train_data_right = helper.Mat_Dataset(datasets_right,["Base"],["S3","S6","S5","S9","S11","S13","S2","S1","S8","S10","S12","S7",])
+train_data = helper.Mat_Dataset(datasets,["Base"],list_train)
+train_data_right = helper.Mat_Dataset(datasets_right,["Base"],list_train)
 
-test_data = helper.Mat_Dataset(datasets,["Base"],["S4"])
-test_data_right = helper.Mat_Dataset(datasets,["Base"],["S4"])
+test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
+test_data_right = helper.Mat_Dataset(datasets,["Base"],[sub])
 
 #### Supine ####
 
@@ -103,7 +104,7 @@ for i in range(len(test_data.samples)):
     # print(e_1[:,:,np.newaxis].shape)
     x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                 e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                e_7[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                e_7[:,:,np.newaxis]),axis=2))
 x_test_left = np.array(x_test)
 
 x_train = []
@@ -123,7 +124,7 @@ for i in range(len(train_data.samples)):
     # print(e_1[:,:,np.newaxis].shape)
     x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                 e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                e_7[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                e_7[:,:,np.newaxis]),axis=2))
 x_train_left = np.array(x_train)
 
 
@@ -145,7 +146,7 @@ for i in range(len(test_data_right.samples)):
     # print(e_1[:,:,np.newaxis].shape)
     x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                 e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                e_7[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                e_7[:,:,np.newaxis]),axis=2))
 x_test_right = np.array(x_test)
 
 x_train = []
@@ -165,7 +166,7 @@ for i in range(len(train_data_right.samples)):
     # print(e_1[:,:,np.newaxis].shape)
     x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                 e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                e_7[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                e_7[:,:,np.newaxis]),axis=2))
 x_train_right = np.array(x_train)
 
 #### 3_Classes ####
@@ -1261,30 +1262,32 @@ print('------------------------------------------------------------------------'
 print(f'Training for subject {sub} ...')
 
 model_all.compile(loss='categorical_crossentropy',
-            optimizer=Adam(),
+        optimizer=Adam(lr=0.0005),
             metrics=['accuracy'])
-
+#model_all.load_weights('bed_posture/ckpt_17_classes/17_classes-{}'.format(sub))
 # model_all.summary()
-# checkpoint_filepath = 'bed_posture/ckpt_3/17_class-S4-epoch-{epoch}'
+checkpoint_filepath = 'bed_posture/ckpt_3/17_class-S6-epoch-{epoch}'
 
-# model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-#     filepath=checkpoint_filepath,
-#     save_weights_only=True,
-#     # monitor='val_acc',
-#     # mode='auto',
-#     save_freq = "epoch",)
+import keras
 
-# model_all.fit([x_train_3_class,x_train_supine,x_train_left,x_train_right], [y_train],
-#         batch_size=32,
-#         epochs=10,
-#         verbose=1,
-#         callbacks=[model_checkpoint_callback],
-#         validation_split=0.2)
+model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    save_weights_only=True,)
+    # monitor='val_acc',
+    # mode='auto',
+    # save_freq = 'epoch')
+
+model_all.fit([x_train_3_class,x_train_supine,x_train_left,x_train_right], [y_train],
+         batch_size=1024,
+         epochs=100,
+         verbose=1,
+         callbacks=[model_checkpoint_callback],)
+        # validation_split=0.3)
 
 import os
 scores = []
 soure = "bed_posture/ckpt_3"
-ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S4" in e]
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if sub in e]
 for ckpt in ckpts:
     print("======================================")
     print(ckpt)

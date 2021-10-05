@@ -88,7 +88,7 @@ for sub in ls_train_full:
         # print(e_1[:,:,np.newaxis].shape)
         x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                     e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                    e_7[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                    e_7[:,:,np.newaxis]),axis=2))
     x_test_left = np.array(x_test)
 
 #### Right ####
@@ -109,7 +109,7 @@ for sub in ls_train_full:
         # print(e_1[:,:,np.newaxis].shape)
         x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                     e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                    e_7[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                    e_7[:,:,np.newaxis]),axis=2))
     x_test_right = np.array(x_test)
 
 #### 3_Classes ####
@@ -1216,6 +1216,8 @@ for sub in ls_train_full:
     model_all.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
+    
+    model_all.load_weights('bed_posture/ckpt_17_classes/17_classes-{}'.format(sub))
     
     score = model_all.evaluate([x_test_3_class,x_test_supine,x_test_left,x_test_right], [y_test], verbose=0)       
     
