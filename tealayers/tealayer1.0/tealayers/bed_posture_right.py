@@ -55,6 +55,7 @@ for i in range(len(train_data.samples)):
     e_5 = np.array(train_data.samples[i]>=mask*159).astype(float)
     e_6 = np.array(train_data.samples[i]>=mask*191).astype(float)
     e_7 = np.array(train_data.samples[i]>=mask*223).astype(float)
+    
     # print(e_1[:,:,np.newaxis].shape)
     x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                    e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
@@ -75,6 +76,7 @@ for i in range(len(test_data.samples)):
     e_5 = np.array(test_data.samples[i]>=mask*159).astype(float)
     e_6 = np.array(test_data.samples[i]>=mask*191).astype(float)
     e_7 = np.array(test_data.samples[i]>=mask*223).astype(float)
+
     # print(e_1[:,:,np.newaxis].shape)
     x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                    e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\

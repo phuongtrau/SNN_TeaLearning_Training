@@ -1,3 +1,4 @@
+
 class Core(object):
 
     def __init__(self, axons, neurons, connections, coordinates):

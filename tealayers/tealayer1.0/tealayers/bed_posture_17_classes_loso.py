@@ -18,6 +18,7 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 from keras import backend as K
 import sys
+
 sys.path.append("../../../rancutils/rancutils")
 
 from teaconversion import create_cores,create_packets,get_connections_and_biases
