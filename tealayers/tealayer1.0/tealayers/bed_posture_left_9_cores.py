@@ -40,8 +40,14 @@ exp_i_data = helper.load_exp_i_left("../dataset/experiment-i")
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
 
+subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S3","S4","S5","S6","S2","S8","S9","S10","S11","S12","S13"])
+sub="S8"
+
+subjects.remove(sub)
+random.shuffle(subjects)
+
+train_data = helper.Mat_Dataset(datasets,["Base"],subject)
 # kernel = np.ones((5,5),np.uint8)
 x_train = []
 
@@ -66,7 +72,7 @@ for i in range(len(train_data.samples)):
                                    e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2,dtype=np.float64))
 
 
-test_data = helper.Mat_Dataset(datasets,["Base"],["S7"])
+test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
 x_test = []
 for i in range(len(test_data.samples)):
     mask = np.ones_like(test_data.samples[i])
@@ -479,7 +485,7 @@ model.compile(loss='categorical_crossentropy',
               optimizer=Adam(lr=0.00005),
               metrics=['accuracy'])
 
-checkpoint_filepath = 'bed_posture/ckpt_3/4_class_deep-S7-epoch-{epoch}'
+checkpoint_filepath = 'bed_posture/ckpt/4_class_deep-S8-epoch-{epoch}'
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
@@ -487,6 +493,8 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_freq = "epoch",)
 
 # model.load_weights("bed_posture/ckpt_right/4_class_deep-S7")
+print('------------------------------------------------------------------------')
+print(f'Training for subject {sub} ...')
 
 model.fit(x_train, y_train,
           batch_size=64,
@@ -497,8 +505,8 @@ model.fit(x_train, y_train,
 
 import os
 scores = []
-soure = "bed_posture/ckpt_3"
-ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S7" in e]
+soure = "bed_posture/ckpt"
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if sub in e]
 for ckpt in ckpts:
     print("======================================")
     print(ckpt)
