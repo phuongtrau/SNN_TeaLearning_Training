@@ -12,9 +12,9 @@ from keras import Model
 from keras.engine.topology import Layer
 from keras import initializers
 from keras.models import Sequential
-from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate,Average,Permute
+from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate,Average,Permute,Add
 from keras.datasets import mnist,fashion_mnist
-from keras.optimizers import Adam
+from keras.optimizers import Adam,SGD
 from keras.utils import to_categorical
 import sys
 sys.path.append("../../../rancutils/rancutils")
@@ -30,196 +30,488 @@ import random
 from sklearn.utils import shuffle
 import cv2
 
-# import preprocess
+# from preprocess import check_in_region,center_out
 from output_bus import OutputBus
 from serialization import save as sim_save
 from emulation import write_cores
 
-exp_i_data = helper.load_exp_i_supine_norm("../dataset/experiment-i")
-# kernel = np.ones((3,3),np.uint8)*200
+exp_i_data = helper.load_exp_i_supine("../dataset/experiment-i")
+kernel_ero = np.ones((3,3),np.uint8)
+kernel_dil = np.ones((5,5),np.uint8)
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
+list_train = ["S1","S3","S4","S5","S2","S8","S9","S10","S11","S12","S13","S7"]
+random.shuffle(list_train)
+train_data = helper.Mat_Dataset(datasets,["Base"],list_train)
 
-train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S2","S3","S4","S5","S6","S7","S8","S9"])
-kernel = np.ones((5,5),np.uint8)
+x_train = []
+
 for i in range(len(train_data.samples)):
     
     train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
-    _,thresh1=cv2.threshold(train_data.samples[i],0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    img_eros = cv2.erode(thresh1,kernel,iterations=1)
-    img_dila = cv2.dilate(img_eros,kernel,iterations=1)
-    train_data.samples[i] = cv2.equalizeHist(img_dila*train_data.samples[i])
 
-test_data = helper.Mat_Dataset(datasets,["Base"],["S10","S11","S12","S13"])
+    heat = cv2.applyColorMap(train_data.samples[i], cv2.COLORMAP_JET)
+    mask = np.ones_like(heat)
+    bin1 = np.array(heat>=mask*63).astype(np.uint8)
+    bin2 = np.array(heat>=mask*127).astype(np.uint8)
+    bin3 = np.array(heat>=mask*190).astype(np.uint8)
+    bin_out = np.concatenate((bin1,bin2,bin3),axis=2)
+    x_train.append(bin_out)
+ 
+    
+test_data = helper.Mat_Dataset(datasets,["Base"],["S6"])
+
+x_test = []
 
 for i in range(len(test_data.samples)):
-    
+
     test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-    _,thresh1=cv2.threshold(test_data.samples[i],0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    img_eros = cv2.erode(thresh1,kernel,iterations=1)
-    img_dila = cv2.dilate(img_eros,kernel,iterations=1)
-    test_data.samples[i]= cv2.equalizeHist(test_data.samples[i]*img_dila)
+    
+    heat = cv2.applyColorMap(test_data.samples[i], cv2.COLORMAP_JET)
+    mask = np.ones_like(heat)
+    bin1 = np.array(heat>=mask*63).astype(np.uint8)
+    bin2 = np.array(heat>=mask*127).astype(np.uint8)
+    bin3 = np.array(heat>=mask*190).astype(np.uint8)
+    bin_out = np.concatenate((bin1,bin2,bin3),axis=2)
 
-x_train = train_data.samples.astype('float32')
-x_test = test_data.samples.astype('float32')
+    x_test.append(bin_out)
+    
+x_train = np.array(x_train).astype(np.uint8)
+x_test = np.array(x_test).astype(np.uint8)
 
-x_train /= 255
-x_test /= 255
+# x_train /= 255
+# x_test /= 255
 
-y_train = to_categorical(train_data.labels, 6)
-y_test = to_categorical(test_data.labels, 6)
-random.seed(0)
-(x_train,y_train) = shuffle(x_train,y_train)
-random.seed(1)
-(x_test,y_test) = shuffle(x_test,y_test)
+y_train = to_categorical(train_data.labels, 9)
+y_test = to_categorical(test_data.labels, 9)
 
-inputs = Input(shape=(64, 32,))
+inputs = Input(shape=(64, 32,9))
 
-permute = Permute((2,1))(inputs)
+# permute = Permute((2,1,3))(inputs)
+flattened = Flatten()(inputs)
 
-flattened_inputs = Flatten()(permute)
+flattened_inputs_1 = Lambda(lambda x : x[:,      :2048*3 ])(flattened)
+flattened_inputs_2 = Lambda(lambda x : x[:,2048*3:2048*6])(flattened)
+flattened_inputs_3 = Lambda(lambda x : x[:,2048*6: ])(flattened)
 
-flattened_inputs = Lambda(lambda x : x[:,128: 1920])(flattened_inputs)
+R_1 = Lambda(lambda x : x[:,     :2048 ])(flattened_inputs_1)
+G_1 = Lambda(lambda x : x[:, 2048:4096 ])(flattened_inputs_1)
+B_1 = Lambda(lambda x : x[:, 4096:     ])(flattened_inputs_1)
 
-x1_1  = Lambda(lambda x : x[:,   3 : 259 ])(flattened_inputs)
-x2_1  = Lambda(lambda x : x[:, 105 : 361 ])(flattened_inputs)
-x3_1  = Lambda(lambda x : x[:, 207 : 463 ])(flattened_inputs)
-x4_1  = Lambda(lambda x : x[:, 309 : 565 ])(flattened_inputs)
-x5_1  = Lambda(lambda x : x[:, 411 : 667 ])(flattened_inputs)
-x6_1  = Lambda(lambda x : x[:, 513 : 769 ])(flattened_inputs)
-x7_1  = Lambda(lambda x : x[:, 615 : 871 ])(flattened_inputs)
-x8_1  = Lambda(lambda x : x[:, 717 : 973 ])(flattened_inputs)
-x9_1  = Lambda(lambda x : x[:, 819 : 1075])(flattened_inputs)
-x10_1  = Lambda(lambda x : x[:,921 : 1177])(flattened_inputs)
-x11_1  = Lambda(lambda x : x[:,1023: 1279])(flattened_inputs)
-x12_1  = Lambda(lambda x : x[:,1125: 1381])(flattened_inputs)
-x13_1  = Lambda(lambda x : x[:,1227: 1483])(flattened_inputs)
-x14_1  = Lambda(lambda x : x[:,1329: 1585])(flattened_inputs)
-x15_1  = Lambda(lambda x : x[:,1431: 1687])(flattened_inputs)
-x16_1  = Lambda(lambda x : x[:,1533: 1789])(flattened_inputs)
+R_2 = Lambda(lambda x : x[:,     :2048 ])(flattened_inputs_2)
+G_2 = Lambda(lambda x : x[:, 2048:4096 ])(flattened_inputs_2)
+B_2 = Lambda(lambda x : x[:, 4096:     ])(flattened_inputs_2)
 
-x1_1_1  = Tea(64)(x1_1)
-x2_1_1  = Tea(64)(x2_1)
-x3_1_1  = Tea(64)(x3_1)
-x4_1_1  = Tea(64)(x4_1)
-x5_1_1  = Tea(64)(x5_1)
-x6_1_1  = Tea(64)(x6_1)
-x7_1_1  = Tea(64)(x7_1)
-x8_1_1  = Tea(64)(x8_1)
-x9_1_1  = Tea(64)(x9_1)
-x10_1_1  = Tea(64)(x10_1)
-x11_1_1  = Tea(64)(x11_1)
-x12_1_1  = Tea(64)(x12_1)
-x13_1_1  = Tea(64)(x13_1)
-x14_1_1  = Tea(64)(x14_1)
-x15_1_1  = Tea(64)(x15_1)
-x16_1_1  = Tea(64)(x16_1)
+R_3 = Lambda(lambda x : x[:,     :2048 ])(flattened_inputs_3)
+G_3 = Lambda(lambda x : x[:, 2048:4096 ])(flattened_inputs_3)
+B_3 = Lambda(lambda x : x[:, 4096:     ])(flattened_inputs_3)
 
-x1_1 = Concatenate(axis=1)([x1_1_1,x2_1_1,x3_1_1,x4_1_1])
-x2_1 = Concatenate(axis=1)([x5_1_1,x6_1_1,x7_1_1,x8_1_1])
-x3_1 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
-x4_1 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
+x1_1  = Lambda(lambda x : x[:,     :256 ])(R_1)
+x2_1  = Lambda(lambda x : x[:, 119 : 375 ])(R_1)
+x3_1  = Lambda(lambda x : x[:, 238 :494 ])(R_1)
+x4_1  = Lambda(lambda x : x[:, 357 : 613])(R_1)
+x5_1  = Lambda(lambda x : x[:, 476:732])(R_1)
+x6_1  = Lambda(lambda x : x[:, 595:851])(R_1)
+x7_1  = Lambda(lambda x : x[:, 714:970])(R_1)
+x8_1  = Lambda(lambda x : x[:, 833:1089])(R_1)
+x9_1  = Lambda(lambda x : x[:, 952:1208])(R_1)
+x10_1  = Lambda(lambda x : x[:, 1071:1327])(R_1)
+x11_1  = Lambda(lambda x : x[:, 1190:1446])(R_1)
+x12_1  = Lambda(lambda x : x[:, 1309:1565])(R_1)
+x13_1  = Lambda(lambda x : x[:, 1428:1684])(R_1)
+x14_1  = Lambda(lambda x : x[:, 1547:1803])(R_1)
+x15_1  = Lambda(lambda x : x[:, 1666:1922])(R_1)
+x16_1  = Lambda(lambda x : x[:, 1785:2041])(R_1)
 
-x1_1 = Tea(64)(x1_1)
-x2_1 = Tea(64)(x2_1)
-x3_1 = Tea(64)(x3_1)
-x4_1 = Tea(64)(x4_1)
+x1_1  = Tea(64)(x1_1)
+x2_1  = Tea(64)(x2_1)
+x3_1  = Tea(64)(x3_1)
+x4_1  = Tea(64)(x4_1)
+x5_1  = Tea(64)(x5_1)
+x6_1  = Tea(64)(x6_1)
+x7_1  = Tea(64)(x7_1)
+x8_1  = Tea(64)(x8_1)
+x9_1  = Tea(64)(x9_1)
+x10_1  = Tea(64)(x10_1)
+x11_1  = Tea(64)(x11_1)
+x12_1  = Tea(64)(x12_1)
+x13_1  = Tea(64)(x13_1)
+x14_1  = Tea(64)(x14_1)
+x15_1  = Tea(64)(x15_1)
+x16_1  = Tea(64)(x16_1)
+
+x1_2  = Lambda(lambda x : x[:,     :256 ])(G_1)
+x2_2  = Lambda(lambda x : x[:, 119 : 375 ])(G_1)
+x3_2  = Lambda(lambda x : x[:, 238 :494 ])(G_1)
+x4_2  = Lambda(lambda x : x[:, 357 : 613])(G_1)
+x5_2  = Lambda(lambda x : x[:, 476:732])(G_1)
+x6_2  = Lambda(lambda x : x[:, 595:851])(G_1)
+x7_2  = Lambda(lambda x : x[:, 714:970])(G_1)
+x8_2  = Lambda(lambda x : x[:, 833:1089])(G_1)
+x9_2  = Lambda(lambda x : x[:, 952:1208])(G_1)
+x10_2  = Lambda(lambda x : x[:, 1071:1327])(G_1)
+x11_2  = Lambda(lambda x : x[:, 1190:1446])(G_1)
+x12_2  = Lambda(lambda x : x[:, 1309:1565])(G_1)
+x13_2  = Lambda(lambda x : x[:, 1428:1684])(G_1)
+x14_2  = Lambda(lambda x : x[:, 1547:1803])(G_1)
+x15_2  = Lambda(lambda x : x[:, 1666:1922])(G_1)
+x16_2  = Lambda(lambda x : x[:, 1785:2041])(G_1)
+
+x1_2  = Tea(64)(x1_2)
+x2_2  = Tea(64)(x2_2)
+x3_2  = Tea(64)(x3_2)
+x4_2  = Tea(64)(x4_2)
+x5_2  = Tea(64)(x5_2)
+x6_2  = Tea(64)(x6_2)
+x7_2  = Tea(64)(x7_2)
+x8_2  = Tea(64)(x8_2)
+x9_2  = Tea(64)(x9_2)
+x10_2  = Tea(64)(x10_2)
+x11_2  = Tea(64)(x11_2)
+x12_2  = Tea(64)(x12_2)
+x13_2  = Tea(64)(x13_2)
+x14_2  = Tea(64)(x14_2)
+x15_2  = Tea(64)(x15_2)
+x16_2  = Tea(64)(x16_2)
+
+x1_3  = Lambda(lambda x : x[:,     :256 ])(B_1)
+x2_3  = Lambda(lambda x : x[:, 119 : 375 ])(B_1)
+x3_3  = Lambda(lambda x : x[:, 238 :494 ])(B_1)
+x4_3  = Lambda(lambda x : x[:, 357 : 613])(B_1)
+x5_3  = Lambda(lambda x : x[:, 476:732])(B_1)
+x6_3  = Lambda(lambda x : x[:, 595:851])(B_1)
+x7_3  = Lambda(lambda x : x[:, 714:970])(B_1)
+x8_3  = Lambda(lambda x : x[:, 833:1089])(B_1)
+x9_3  = Lambda(lambda x : x[:, 952:1208])(B_1)
+x10_3  = Lambda(lambda x : x[:, 1071:1327])(B_1)
+x11_3  = Lambda(lambda x : x[:, 1190:1446])(B_1)
+x12_3  = Lambda(lambda x : x[:, 1309:1565])(B_1)
+x13_3  = Lambda(lambda x : x[:, 1428:1684])(B_1)
+x14_3  = Lambda(lambda x : x[:, 1547:1803])(B_1)
+x15_3  = Lambda(lambda x : x[:, 1666:1922])(B_1)
+x16_3  = Lambda(lambda x : x[:, 1785:2041])(B_1)
+
+x1_3  = Tea(64)(x1_3)
+x2_3  = Tea(64)(x2_3)
+x3_3  = Tea(64)(x3_3)
+x4_3  = Tea(64)(x4_3)
+x5_3  = Tea(64)(x5_3)
+x6_3  = Tea(64)(x6_3)
+x7_3  = Tea(64)(x7_3)
+x8_3  = Tea(64)(x8_3)
+x9_3  = Tea(64)(x9_3)
+x10_3  = Tea(64)(x10_3)
+x11_3  = Tea(64)(x11_3)
+x12_3  = Tea(64)(x12_3)
+x13_3  = Tea(64)(x13_3)
+x14_3  = Tea(64)(x14_3)
+x15_3  = Tea(64)(x15_3)
+x16_3  = Tea(64)(x16_3)
+
+### 2 ###
+
+x1_4  = Lambda(lambda x : x[:,     :256 ])(R_2)
+x2_4  = Lambda(lambda x : x[:, 119 : 375 ])(R_2)
+x3_4  = Lambda(lambda x : x[:, 238 :494 ])(R_2)
+x4_4  = Lambda(lambda x : x[:, 357 : 613])(R_2)
+x5_4  = Lambda(lambda x : x[:, 476:732])(R_2)
+x6_4  = Lambda(lambda x : x[:, 595:851])(R_2)
+x7_4  = Lambda(lambda x : x[:, 714:970])(R_2)
+x8_4  = Lambda(lambda x : x[:, 833:1089])(R_2)
+x9_4  = Lambda(lambda x : x[:, 952:1208])(R_2)
+x10_4  = Lambda(lambda x : x[:, 1071:1327])(R_2)
+x11_4  = Lambda(lambda x : x[:, 1190:1446])(R_2)
+x12_4  = Lambda(lambda x : x[:, 1309:1565])(R_2)
+x13_4  = Lambda(lambda x : x[:, 1428:1684])(R_2)
+x14_4  = Lambda(lambda x : x[:, 1547:1803])(R_2)
+x15_4  = Lambda(lambda x : x[:, 1666:1922])(R_2)
+x16_4  = Lambda(lambda x : x[:, 1785:2041])(R_2)
+
+x1_4  = Tea(64)(x1_4)
+x2_4  = Tea(64)(x2_4)
+x3_4  = Tea(64)(x3_4)
+x4_4  = Tea(64)(x4_4)
+x5_4  = Tea(64)(x5_4)
+x6_4  = Tea(64)(x6_4)
+x7_4  = Tea(64)(x7_4)
+x8_4  = Tea(64)(x8_4)
+x9_4  = Tea(64)(x9_4)
+x10_4  = Tea(64)(x10_4)
+x11_4  = Tea(64)(x11_4)
+x12_4  = Tea(64)(x12_4)
+x13_4  = Tea(64)(x13_4)
+x14_4  = Tea(64)(x14_4)
+x15_4  = Tea(64)(x15_4)
+x16_4  = Tea(64)(x16_4)
+
+x1_5  = Lambda(lambda x : x[:,     :256 ])(G_2)
+x2_5  = Lambda(lambda x : x[:, 119 : 375 ])(G_2)
+x3_5  = Lambda(lambda x : x[:, 238 :494 ])(G_2)
+x4_5  = Lambda(lambda x : x[:, 357 : 613])(G_2)
+x5_5  = Lambda(lambda x : x[:, 476:732])(G_2)
+x6_5  = Lambda(lambda x : x[:, 595:851])(G_2)
+x7_5  = Lambda(lambda x : x[:, 714:970])(G_2)
+x8_5  = Lambda(lambda x : x[:, 833:1089])(G_2)
+x9_5  = Lambda(lambda x : x[:, 952:1208])(G_2)
+x10_5  = Lambda(lambda x : x[:, 1071:1327])(G_2)
+x11_5  = Lambda(lambda x : x[:, 1190:1446])(G_2)
+x12_5  = Lambda(lambda x : x[:, 1309:1565])(G_2)
+x13_5  = Lambda(lambda x : x[:, 1428:1684])(G_2)
+x14_5  = Lambda(lambda x : x[:, 1547:1803])(G_2)
+x15_5  = Lambda(lambda x : x[:, 1666:1922])(G_2)
+x16_5  = Lambda(lambda x : x[:, 1785:2041])(G_2)
+
+x1_5  = Tea(64)(x1_5)
+x2_5  = Tea(64)(x2_5)
+x3_5  = Tea(64)(x3_5)
+x4_5  = Tea(64)(x4_5)
+x5_5  = Tea(64)(x5_5)
+x6_5  = Tea(64)(x6_5)
+x7_5  = Tea(64)(x7_5)
+x8_5  = Tea(64)(x8_5)
+x9_5  = Tea(64)(x9_5)
+x10_5  = Tea(64)(x10_5)
+x11_5  = Tea(64)(x11_5)
+x12_5  = Tea(64)(x12_5)
+x13_5  = Tea(64)(x13_5)
+x14_5  = Tea(64)(x14_5)
+x15_5  = Tea(64)(x15_5)
+x16_5  = Tea(64)(x16_5)
+
+x1_6  = Lambda(lambda x : x[:,     :256 ])(B_2)
+x2_6  = Lambda(lambda x : x[:, 119 : 375 ])(B_2)
+x3_6  = Lambda(lambda x : x[:, 238 :494 ])(B_2)
+x4_6  = Lambda(lambda x : x[:, 357 : 613])(B_2)
+x5_6  = Lambda(lambda x : x[:, 476:732])(B_2)
+x6_6  = Lambda(lambda x : x[:, 595:851])(B_2)
+x7_6  = Lambda(lambda x : x[:, 714:970])(B_2)
+x8_6  = Lambda(lambda x : x[:, 833:1089])(B_2)
+x9_6  = Lambda(lambda x : x[:, 952:1208])(B_2)
+x10_6  = Lambda(lambda x : x[:, 1071:1327])(B_2)
+x11_6  = Lambda(lambda x : x[:, 1190:1446])(B_2)
+x12_6  = Lambda(lambda x : x[:, 1309:1565])(B_2)
+x13_6  = Lambda(lambda x : x[:, 1428:1684])(B_2)
+x14_6  = Lambda(lambda x : x[:, 1547:1803])(B_2)
+x15_6  = Lambda(lambda x : x[:, 1666:1922])(B_2)
+x16_6  = Lambda(lambda x : x[:, 1785:2041])(B_2)
+
+x1_6  = Tea(64)(x1_6)
+x2_6  = Tea(64)(x2_6)
+x3_6  = Tea(64)(x3_6)
+x4_6  = Tea(64)(x4_6)
+x5_6  = Tea(64)(x5_6)
+x6_6  = Tea(64)(x6_6)
+x7_6  = Tea(64)(x7_6)
+x8_6  = Tea(64)(x8_6)
+x9_6  = Tea(64)(x9_6)
+x10_6  = Tea(64)(x10_6)
+x11_6  = Tea(64)(x11_6)
+x12_6  = Tea(64)(x12_6)
+x13_6  = Tea(64)(x13_6)
+x14_6  = Tea(64)(x14_6)
+x15_6  = Tea(64)(x15_6)
+x16_6  = Tea(64)(x16_6)
+
+### 3 ###
+
+x1_7  = Lambda(lambda x : x[:,     :256 ])(R_3)
+x2_7  = Lambda(lambda x : x[:, 119 : 375 ])(R_3)
+x3_7  = Lambda(lambda x : x[:, 238 :494 ])(R_3)
+x4_7  = Lambda(lambda x : x[:, 357 : 613])(R_3)
+x5_7  = Lambda(lambda x : x[:, 476:732])(R_3)
+x6_7  = Lambda(lambda x : x[:, 595:851])(R_3)
+x7_7  = Lambda(lambda x : x[:, 714:970])(R_3)
+x8_7  = Lambda(lambda x : x[:, 833:1089])(R_3)
+x9_7  = Lambda(lambda x : x[:, 952:1208])(R_3)
+x10_7  = Lambda(lambda x : x[:, 1071:1327])(R_3)
+x11_7  = Lambda(lambda x : x[:, 1190:1446])(R_3)
+x12_7  = Lambda(lambda x : x[:, 1309:1565])(R_3)
+x13_7  = Lambda(lambda x : x[:, 1428:1684])(R_3)
+x14_7  = Lambda(lambda x : x[:, 1547:1803])(R_3)
+x15_7  = Lambda(lambda x : x[:, 1666:1922])(R_3)
+x16_7  = Lambda(lambda x : x[:, 1785:2041])(R_3)
+
+x1_7  = Tea(64)(x1_7)
+x2_7  = Tea(64)(x2_7)
+x3_7  = Tea(64)(x3_7)
+x4_7  = Tea(64)(x4_7)
+x5_7  = Tea(64)(x5_7)
+x6_7  = Tea(64)(x6_7)
+x7_7  = Tea(64)(x7_7)
+x8_7  = Tea(64)(x8_7)
+x9_7  = Tea(64)(x9_7)
+x10_7  = Tea(64)(x10_7)
+x11_7  = Tea(64)(x11_7)
+x12_7  = Tea(64)(x12_7)
+x13_7  = Tea(64)(x13_7)
+x14_7  = Tea(64)(x14_7)
+x15_7  = Tea(64)(x15_7)
+x16_7  = Tea(64)(x16_7)
+
+x1_8  = Lambda(lambda x : x[:,     :256 ])(G_3)
+x2_8  = Lambda(lambda x : x[:, 119 : 375 ])(G_3)
+x3_8  = Lambda(lambda x : x[:, 238 :494 ])(G_3)
+x4_8  = Lambda(lambda x : x[:, 357 : 613])(G_3)
+x5_8  = Lambda(lambda x : x[:, 476:732])(G_3)
+x6_8  = Lambda(lambda x : x[:, 595:851])(G_3)
+x7_8  = Lambda(lambda x : x[:, 714:970])(G_3)
+x8_8  = Lambda(lambda x : x[:, 833:1089])(G_3)
+x9_8  = Lambda(lambda x : x[:, 952:1208])(G_3)
+x10_8  = Lambda(lambda x : x[:, 1071:1327])(G_3)
+x11_8  = Lambda(lambda x : x[:, 1190:1446])(G_3)
+x12_8  = Lambda(lambda x : x[:, 1309:1565])(G_3)
+x13_8  = Lambda(lambda x : x[:, 1428:1684])(G_3)
+x14_8  = Lambda(lambda x : x[:, 1547:1803])(G_3)
+x15_8  = Lambda(lambda x : x[:, 1666:1922])(G_3)
+x16_8  = Lambda(lambda x : x[:, 1785:2041])(G_3)
+
+x1_8  = Tea(64)(x1_8)
+x2_8  = Tea(64)(x2_8)
+x3_8  = Tea(64)(x3_8)
+x4_8  = Tea(64)(x4_8)
+x5_8  = Tea(64)(x5_8)
+x6_8  = Tea(64)(x6_8)
+x7_8  = Tea(64)(x7_8)
+x8_8  = Tea(64)(x8_8)
+x9_8  = Tea(64)(x9_8)
+x10_8  = Tea(64)(x10_8)
+x11_8  = Tea(64)(x11_8)
+x12_8  = Tea(64)(x12_8)
+x13_8  = Tea(64)(x13_8)
+x14_8  = Tea(64)(x14_8)
+x15_8  = Tea(64)(x15_8)
+x16_8  = Tea(64)(x16_8)
+
+x1_9  = Lambda(lambda x : x[:,     :256 ])(B_3)
+x2_9  = Lambda(lambda x : x[:, 119 : 375 ])(B_3)
+x3_9  = Lambda(lambda x : x[:, 238 :494 ])(B_3)
+x4_9  = Lambda(lambda x : x[:, 357 : 613])(B_3)
+x5_9  = Lambda(lambda x : x[:, 476:732])(B_3)
+x6_9  = Lambda(lambda x : x[:, 595:851])(B_3)
+x7_9  = Lambda(lambda x : x[:, 714:970])(B_3)
+x8_9  = Lambda(lambda x : x[:, 833:1089])(B_3)
+x9_9  = Lambda(lambda x : x[:, 952:1208])(B_3)
+x10_9  = Lambda(lambda x : x[:, 1071:1327])(B_3)
+x11_9  = Lambda(lambda x : x[:, 1190:1446])(B_3)
+x12_9  = Lambda(lambda x : x[:, 1309:1565])(B_3)
+x13_9  = Lambda(lambda x : x[:, 1428:1684])(B_3)
+x14_9  = Lambda(lambda x : x[:, 1547:1803])(B_3)
+x15_9  = Lambda(lambda x : x[:, 1666:1922])(B_3)
+x16_9  = Lambda(lambda x : x[:, 1785:2041])(B_3)
+
+x1_9  = Tea(64)(x1_9)
+x2_9  = Tea(64)(x2_9)
+x3_9  = Tea(64)(x3_9)
+x4_9  = Tea(64)(x4_9)
+x5_9  = Tea(64)(x5_9)
+x6_9  = Tea(64)(x6_9)
+x7_9  = Tea(64)(x7_9)
+x8_9  = Tea(64)(x8_9)
+x9_9  = Tea(64)(x9_9)
+x10_9  = Tea(64)(x10_9)
+x11_9  = Tea(64)(x11_9)
+x12_9  = Tea(64)(x12_9)
+x13_9  = Tea(64)(x13_9)
+x14_9  = Tea(64)(x14_9)
+x15_9  = Tea(64)(x15_9)
+x16_9  = Tea(64)(x16_9)
+
+x1_1_1 = Average()([x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9])
+x2_1_1 = Average()([x2_1,x2_2,x2_3,x2_4,x2_5,x2_6,x2_7,x2_8,x2_9])
+x3_1_1 = Average()([x3_1,x3_2,x3_3,x3_4,x3_5,x3_6,x3_7,x3_8,x3_9])
+x4_1_1 = Average()([x4_1,x4_2,x4_3,x4_4,x4_5,x4_6,x4_7,x4_8,x4_9])
+x5_1_1 = Average()([x5_1,x5_2,x5_3,x5_4,x5_5,x5_6,x5_7,x5_8,x5_9])
+x6_1_1 = Average()([x6_1,x6_2,x6_3,x6_4,x6_5,x6_6,x6_7,x6_8,x6_9])
+x7_1_1 = Average()([x7_1,x7_2,x7_3,x7_4,x7_5,x7_6,x7_7,x7_8,x7_9])
+x8_1_1 = Average()([x8_1,x8_2,x8_3,x8_4,x8_5,x8_6,x8_7,x8_8,x8_9])
+x9_1_1 = Average()([x9_1,x9_2,x9_3,x9_4,x9_5,x9_6,x9_7,x9_8,x9_9])
+x10_1_1 = Average()([x10_1,x10_2,x10_3,x10_4,x10_5,x10_6,x10_7,x10_8,x10_9])
+x11_1_1 = Average()([x11_1,x11_2,x11_3,x11_4,x11_5,x11_6,x11_7,x11_8,x11_9])
+x12_1_1 = Average()([x12_1,x12_2,x12_3,x12_4,x12_5,x12_6,x12_7,x12_8,x12_9])
+x13_1_1 = Average()([x13_1,x13_2,x13_3,x13_4,x13_5,x13_6,x13_7,x13_8,x13_9])
+x14_1_1 = Average()([x14_1,x14_2,x14_3,x14_4,x14_5,x14_6,x14_7,x14_8,x14_9])
+x15_1_1 = Average()([x15_1,x15_2,x15_3,x15_4,x15_5,x15_6,x15_7,x15_8,x15_9])
+x16_1_1 = Average()([x16_1,x16_2,x16_3,x16_4,x16_5,x16_6,x16_7,x16_8,x16_9])
+
+x1 = Concatenate(axis=1)([x1_1_1,x2_1_1,x3_1_1,x4_1_1])
+x2 = Concatenate(axis=1)([x5_1_1,x6_1_1,x7_1_1,x8_1_1])
+x3 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
+x4 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
+
+x1_1 = Tea(64)(x1)
+# x1_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x1_1])
+x2_1 = Tea(64)(x2)
+# x2_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x2_1])
+x3_1 = Tea(64)(x3)
+# x3_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x3_1])
+x4_1 = Tea(64)(x4)
+# x4_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x4_1])
+
 
 x_out = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
-
 x_out = Tea(252)(x_out)
 
-x_out = AdditivePooling(6)(x_out)
+# x_out = Concatenate(axis=1)([x_out_1,x_out_2])
+
+x_out = AdditivePooling(9)(x_out)
 
 predictions = Activation('softmax')(x_out)
 
 model = Model(inputs=inputs, outputs=predictions)
 
+# lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+#     initial_learning_rate=1e-3,
+#     decay_steps=5,
+#     decay_rate=0.9)
+
 model.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 
-model.fit(x_train, y_train,
-          batch_size=64,
-          epochs=10,
-          verbose=1,
-          validation_split=0.2)
+# callback = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=50)
 
-score = model.evaluate(x_test, y_test, verbose=0)
-model.summary()
-model.save_weights("blabla_2")
+checkpoint_filepath = 'bed_posture/ckpt_2/9_class_deep-S6-epoch-{epoch}'
 
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    save_weights_only=True,
+    # monitor='val_acc',
+    # mode='auto',
+    save_freq = "epoch",)
+    # save_best_only=True)
 
-inputs = Input(shape=(64, 32,))
-# print(inputs)
-permute = Permute((2,1))(inputs)
-# print(permute)
-flattened_inputs = Flatten()(permute)
+# model.load_weights("bed_posture/ckpt_supine/9_class_deep-S6")
 
-flattened_inputs = Lambda(lambda x : x[:,128: 1920])(flattened_inputs)
+# model.fit(x_train, y_train,
+#           batch_size=1024,
+#           epochs=100,
+#           verbose=1,
+#           callbacks=[model_checkpoint_callback],
+#           validation_split=0.2)
 
-x1_1  = Lambda(lambda x : x[:,   3 : 259 ])(flattened_inputs)
-x2_1  = Lambda(lambda x : x[:, 105 : 361 ])(flattened_inputs)
-x3_1  = Lambda(lambda x : x[:, 207 : 463 ])(flattened_inputs)
-x4_1  = Lambda(lambda x : x[:, 309 : 565 ])(flattened_inputs)
-x5_1  = Lambda(lambda x : x[:, 411 : 667 ])(flattened_inputs)
-x6_1  = Lambda(lambda x : x[:, 513 : 769 ])(flattened_inputs)
-x7_1  = Lambda(lambda x : x[:, 615 : 871 ])(flattened_inputs)
-x8_1  = Lambda(lambda x : x[:, 717 : 973 ])(flattened_inputs)
-x9_1  = Lambda(lambda x : x[:, 819 : 1075])(flattened_inputs)
-x10_1  = Lambda(lambda x : x[:,921 : 1177])(flattened_inputs)
-x11_1  = Lambda(lambda x : x[:,1023: 1279])(flattened_inputs)
-x12_1  = Lambda(lambda x : x[:,1125: 1381])(flattened_inputs)
-x13_1  = Lambda(lambda x : x[:,1227: 1483])(flattened_inputs)
-x14_1  = Lambda(lambda x : x[:,1329: 1585])(flattened_inputs)
-x15_1  = Lambda(lambda x : x[:,1431: 1687])(flattened_inputs)
-x16_1  = Lambda(lambda x : x[:,1533: 1789])(flattened_inputs)
+import os
+scores = []
+soure = "bed_posture/ckpt_2"
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S6" in e]
+for ckpt in ckpts:
+    print("======================================")
+    print(ckpt)
+    print("======================================")
+    model.load_weights(ckpt)      
+    score = model.evaluate(x_test, y_test, verbose=0)
+    print('Test loss:', score[0])
+    print('Test accuracy:', score[1])
+    scores.append(score[1])
 
-x1_1_1  = Tea(64)(x1_1)
-x2_1_1  = Tea(64)(x2_1)
-x3_1_1  = Tea(64)(x3_1)
-x4_1_1  = Tea(64)(x4_1)
-x5_1_1  = Tea(64)(x5_1)
-x6_1_1  = Tea(64)(x6_1)
-x7_1_1  = Tea(64)(x7_1)
-x8_1_1  = Tea(64)(x8_1)
-x9_1_1  = Tea(64)(x9_1)
-x10_1_1  = Tea(64)(x10_1)
-x11_1_1  = Tea(64)(x11_1)
-x12_1_1  = Tea(64)(x12_1)
-x13_1_1  = Tea(64)(x13_1)
-x14_1_1  = Tea(64)(x14_1)
-x15_1_1  = Tea(64)(x15_1)
-x16_1_1  = Tea(64)(x16_1)
+print("Max accuracy:",max(scores))
+print("Best epoch:",ckpts[scores.index(max(scores))])
 
-x1_1 = Concatenate(axis=1)([x1_1_1,x2_1_1,x3_1_1,x4_1_1])
-x2_1 = Concatenate(axis=1)([x5_1_1,x6_1_1,x7_1_1,x8_1_1])
-x3_1 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
-x4_1 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
 
-x1_1 = Tea(64)(x1_1)
-x2_1 = Tea(64)(x2_1)
-x3_1 = Tea(64)(x3_1)
-x4_1 = Tea(64)(x4_1)
+# model.load_weights("bed_posture/ckpt_supine/9_class_deep-S5-val_acc-0.859")   
 
-x_out = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
+# score = model.evaluate(x_test, y_test, verbose=0)
+# # if score[1] >= 0.80:
+# #     model.save_weights("bed_posture/ckpt_supine/9_class_deep-S2")
+# print('Test loss:', score[0])
+# print('Test accuracy:', score[1]*100)
 
-x_out = Tea(252)(x_out)
-
-x_out = AdditivePooling(6)(x_out)
-
-predictions = Activation('softmax')(x_out)
-
-saved_model= Model(inputs=inputs, outputs=predictions)
-
-saved_model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
-              metrics=['accuracy'])
-
-saved_model.load_weights("blabla")
-score = saved_model.evaluate(x_test, y_test, verbose=0)
-
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
