@@ -511,15 +511,15 @@ def load_exp_i_supine_incl(path,preprocess=True):
               raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
               
               if preprocess is True:
-                  past_image = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
-                  future_image = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
-                  
-                  # Spatio-temporal median filter 3x3x3
-                  raw_data = ndimage.median_filter(raw_data, 3)
-                  past_image = ndimage.median_filter(past_image, 3)
-                  future_image = ndimage.median_filter(future_image, 3)
-                  raw_data = np.concatenate((raw_data[np.newaxis, :, :], past_image[np.newaxis, :, :], future_image[np.newaxis, :, :]), axis=0)
-                  raw_data = np.median(raw_data, axis=0)
+                past_image = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                
+                # Spatio-temporal median filter 3x3x3
+                raw_data = ndimage.median_filter(raw_data, 3)
+                past_image = ndimage.median_filter(past_image, 3)
+                future_image = ndimage.median_filter(future_image, 3)
+                raw_data = np.concatenate((raw_data[np.newaxis, :, :], past_image[np.newaxis, :, :], future_image[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
 
               # Change the range from [0-1000] to [0-255].
               # max_vol = np.amax(raw_data)
@@ -622,7 +622,7 @@ def load_exp_i_left(path,preprocess=True):
       dataset[subject] = (data, labels)
   return dataset
 
-def load_exp_i_right(path):
+def load_exp_i_right(path,preprocess=True):
   """
   Creates a numpy array for the data and labels.
   params:
@@ -649,9 +649,29 @@ def load_exp_i_right(path):
           file_path = os.path.join(path, directory, file)
           with open(file_path, 'r') as f:
             # Start from second recording, as the first two are corrupted
-            for line in f.read().splitlines()[2:]:
-              # print(line)
-              raw_data = np.fromstring(line, dtype=float, sep='\t')
+            lines = f.read().splitlines()[2:]
+            for i in range(5, len(lines) - 5):
+                            
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                past_image_1 = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image_1 = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                past_image_2 = np.fromstring(lines[i-2], dtype=float, sep='\t').reshape(64, 32)
+                future_image_2 = np.fromstring(lines[i+2], dtype=float, sep='\t').reshape(64, 32)
+              
+                # Spatio-temporal median filter 5x5x5
+              
+                raw_data = ndimage.median_filter(raw_data, 3)
+                
+                past_image_1 = ndimage.median_filter(past_image_1, 3)
+                future_image_1 = ndimage.median_filter(future_image_1, 3)
+                past_image_2 = ndimage.median_filter(past_image_2, 3)
+                future_image_2 = ndimage.median_filter(future_image_2, 3)
+
+                raw_data = np.concatenate((past_image_2[np.newaxis, :, :],past_image_1[np.newaxis, :, :] ,raw_data[np.newaxis, :, :], \
+                future_image_1[np.newaxis, :, :],future_image_2[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
               # Change the range from [0-1000] to [0-255].
               file_data = np.round(raw_data*255/1000).astype(np.uint8)
               file_data = file_data.reshape((1,64,32))
