@@ -17,10 +17,10 @@ from keras.datasets import mnist,fashion_mnist
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 import sys
-sys.path.append("../../../rancutils/rancutils")
+# sys.path.append("../../../rancutils/rancutils")
 
-from teaconversion import create_cores,create_packets,get_connections_and_biases
-from packet import Packet
+# from teaconversion import create_cores,create_packets,get_connections_and_biases
+# from packet import Packet
 # sys.path.append("../")
 # from tea import Tea
 from additivepooling import AdditivePooling

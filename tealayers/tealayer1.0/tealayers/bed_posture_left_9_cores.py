@@ -19,8 +19,8 @@ from keras.utils import to_categorical
 import sys
 sys.path.append("../../../rancutils/rancutils")
 
-from teaconversion import create_cores,create_packets,get_connections_and_biases
-from packet import Packet
+# from teaconversion import create_cores,create_packets,get_connections_and_biases
+# from packet import Packet
 # sys.path.append("../")
 # from tea import Tea
 from additivepooling import AdditivePooling
@@ -31,9 +31,9 @@ from sklearn.utils import shuffle
 import cv2
 
 # import preprocess
-from output_bus import OutputBus
-from serialization import save as sim_save
-from emulation import write_cores
+# from output_bus import OutputBus
+# from serialization import save as sim_save
+# from emulation import write_cores
 
 exp_i_data = helper.load_exp_i_left("../dataset/experiment-i")
 # kernel = np.ones((3,3),np.uint8)*200
@@ -42,12 +42,13 @@ datasets = {"Base":exp_i_data}
 
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S8"
+sub="S13"
 
 subjects.remove(sub)
+random.seed(0)
 random.shuffle(subjects)
 
-train_data = helper.Mat_Dataset(datasets,["Base"],subject)
+train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
 # kernel = np.ones((5,5),np.uint8)
 x_train = []
 
@@ -69,7 +70,7 @@ for i in range(len(train_data.samples)):
     # print(e_1[:,:,np.newaxis].shape)
     x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                    e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                   e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                   e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2))
 
 
 test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
@@ -93,7 +94,7 @@ for i in range(len(test_data.samples)):
     # print(e_1[:,:,np.newaxis].shape)
     x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                    e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                   e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                   e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2))
     
 
 
@@ -482,23 +483,23 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.00005),
+              optimizer=Adam(lr=0.001),
               metrics=['accuracy'])
 
-checkpoint_filepath = 'bed_posture/ckpt/4_class_deep-S8-epoch-{epoch}'
-
-model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+checkpoint_filepath = 'bed_posture/ckpt/4_class_deep-S13-epoch-{epoch}'
+import keras
+model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
-    save_weights_only=True,
-    save_freq = "epoch",)
+    save_weights_only=True,)
+    # save_freq = "epoch",)
 
-# model.load_weights("bed_posture/ckpt_right/4_class_deep-S7")
+# model.load_weights("bed_posture/ckpt_left_9_cores/4_class_deep-{}".format(sub))
 print('------------------------------------------------------------------------')
 print(f'Training for subject {sub} ...')
 
 model.fit(x_train, y_train,
-          batch_size=64,
-          epochs=100,
+          batch_size=1024,
+          epochs=150,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0.2)

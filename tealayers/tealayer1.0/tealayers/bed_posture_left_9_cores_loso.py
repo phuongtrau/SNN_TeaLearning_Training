@@ -17,10 +17,10 @@ from keras.datasets import mnist,fashion_mnist
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 import sys
-sys.path.append("../../../rancutils/rancutils")
+# sys.path.append("../../../rancutils/rancutils")
 
-from teaconversion import create_cores,create_packets,get_connections_and_biases
-from packet import Packet
+# from teaconversion import create_cores,create_packets,get_connections_and_biases
+# from packet import Packet
 # sys.path.append("../")
 # from tea import Tea
 from additivepooling import AdditivePooling
@@ -91,7 +91,7 @@ for sub in ls_train_full:
     # print(e_1[:,:,np.newaxis].shape)
     x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
                                   e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                  e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2,dtype=np.float64))
+                                  e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2))
       
 
 
