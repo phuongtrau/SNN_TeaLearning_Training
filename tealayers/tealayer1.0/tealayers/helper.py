@@ -245,7 +245,7 @@ def load_exp_i(path,preprocess=True):
 
   return dataset
 
-def load_exp_i_short(path):
+def load_exp_i_short(path,preprocess=True):
   """
   Creates a numpy array for the data and labels.
   params:
@@ -264,18 +264,31 @@ def load_exp_i_short(path):
       subject = directory
       data = None
       labels = None
+      max_val = []
       for _, _, files in os.walk(os.path.join(path, directory)):
         # print(files)
         for file in files:
           # print(file)
           file_path = os.path.join(path, directory, file)
           with open(file_path, 'r') as f:
-            # Start from second recording, as the first two are corrupted
-            for line in f.read().splitlines()[2:]:
-              # print(line)
-              raw_data = np.fromstring(line, dtype=float, sep='\t')
-              # Change the range from [0-1000] to [0-255].
+            lines = f.read().splitlines()[2:]
+            for i in range(3, len(lines) - 3):
+                              
+              raw_data = np.fromstring(lines[i], dtype=float, sep='\t').reshape(64, 32)
+              
+              if preprocess is True:
+                past_image = np.fromstring(lines[i-1], dtype=float, sep='\t').reshape(64, 32)
+                future_image = np.fromstring(lines[i+1], dtype=float, sep='\t').reshape(64, 32)
+                
+                # Spatio-temporal median filter 3x3x3
+                raw_data = ndimage.median_filter(raw_data, 3)
+                past_image = ndimage.median_filter(past_image, 3)
+                future_image = ndimage.median_filter(future_image, 3)
+                raw_data = np.concatenate((raw_data[np.newaxis, :, :], past_image[np.newaxis, :, :], future_image[np.newaxis, :, :]), axis=0)
+                raw_data = np.median(raw_data, axis=0)
               file_data = np.round(raw_data*255/1000).astype(np.uint8)
+              # file_data = np.round(raw_data).astype(np.uint8)
+              
               file_data = file_data.reshape((1,64,32))
               # print(positions_i[int(file[:-4])])
               file_label = token_position_short(positions_i_short[int(file[:-4])])

@@ -32,7 +32,7 @@ from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import cv2
 
-exp_i_data = helper.load_exp_i("../dataset/experiment-i")
+exp_i_data = helper.load_exp_i_short("../dataset/experiment-i")
 
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
@@ -41,31 +41,15 @@ train_data = helper.Mat_Dataset(datasets,["Base"],["S1","S2","S3","S4","S5","S6"
 
 for i in range(len(train_data.samples)):
     train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
-# print((train_data.samples.shape,train_data.labels.shape))
 
-# test_data = helper.Mat_Dataset(datasets,["Base"],["S10","S11","S12","S13"])
-# for i in range(len(test_data.samples)):
-#     test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-# print((test_data.samples,test_data.labels))
 
 x_train = train_data.samples.astype('float32')
-# x_test = test_data.samples.astype('float32')
 
 x_train /= 255
-# x_test /= 255
-
-# cv2.imwrite("raw.jpg",train_data.samples[0])
-# img = cv2.equalizeHist(train_data.samples[0])
-# cv2.imwrite("test.jpg",img)
 
 y_train = to_categorical(train_data.labels, 3)
-# y_test = to_categorical(test_data.labels, 3)
 
-# random.seed(0)
 (x_train,y_train) = shuffle(x_train,y_train)
-
-# (x_test,y_test) = shuffle(x_test,y_test)
-
 
 # Define per-fold score containers
 acc_per_fold = []

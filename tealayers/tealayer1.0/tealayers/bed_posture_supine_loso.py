@@ -4,6 +4,7 @@ from __future__ import print_function
 import operator
 import functools
 import math
+import os 
 
 import tensorflow as tf
 import numpy as np
@@ -31,6 +32,9 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import cv2
+from output_bus import OutputBus
+from serialization import save as sim_save
+from emulation import write_cores
 
 exp_i_data = helper.load_exp_i_supine("../dataset/experiment-i")
 
@@ -38,7 +42,7 @@ exp_i_data = helper.load_exp_i_supine("../dataset/experiment-i")
 datasets = {"Base":exp_i_data}
 
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
-
+# subjects = ["S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 # Define per-fold score containers
 acc_per_so = []
 loss_per_so = []
@@ -481,6 +485,12 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
+  # if not os.path.exists(".mem_files/supine_21_cores_mem/{}".format(sub)):
+  #   os.makedirs(".mem_files/supine_21_cores_mem/{}".format(sub))
+
+  # cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=9) 
+
+  # write_cores(cores_sim,max_xy=(1,16*9+5),output_path=".mem_files/supine_21_cores_mem/{}".format(sub))
 
 # == Provide average scores ==
 print('------------------------------------------------------------------------')

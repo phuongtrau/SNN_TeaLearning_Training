@@ -4,6 +4,7 @@ from __future__ import print_function
 import operator
 import functools
 import math
+import os
 
 import tensorflow as tf
 import numpy as np
@@ -17,10 +18,10 @@ from keras.datasets import mnist,fashion_mnist
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 import sys
-# sys.path.append("../../../rancutils/rancutils")
+sys.path.append("../../../rancutils/rancutils")
 
-# from teaconversion import create_cores,create_packets,get_connections_and_biases
-# from packet import Packet
+from teaconversion import create_cores,create_packets,get_connections_and_biases
+from packet import Packet
 # sys.path.append("../")
 # from tea import Tea
 from additivepooling import AdditivePooling
@@ -31,6 +32,9 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import cv2
+from output_bus import OutputBus
+from serialization import save as sim_save
+from emulation import write_cores
 
 exp_i_data = helper.load_exp_i_left("../dataset/experiment-i")
 
@@ -502,7 +506,12 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
+  # if not os.path.exists(".mem_files/left_21_cores_mem/{}".format(sub)):
+  #   os.makedirs(".mem_files/left_21_cores_mem/{}".format(sub))
 
+  # cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=4) 
+
+  # write_cores(cores_sim,max_xy=(1,16*9+5),output_path=".mem_files/left_21_cores_mem/{}".format(sub))
   # fold_no = fold_no + 1
 
 # == Provide average scores ==

@@ -45,7 +45,7 @@ subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"
 sub="S13"
 
 subjects.remove(sub)
-random.seed(0)
+random.seed(2)
 random.shuffle(subjects)
 
 train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
@@ -483,26 +483,26 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.001),
+              optimizer=Adam(lr=0.0005),
               metrics=['accuracy'])
 
-checkpoint_filepath = 'bed_posture/ckpt/4_class_deep-S13-epoch-{epoch}'
+checkpoint_filepath = 'bed_posture/ckpt/4_class_deep-{}'.format(sub)
 import keras
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_filepath,
+    filepath=checkpoint_filepath + '-epoch-{epoch}',
     save_weights_only=True,)
     # save_freq = "epoch",)
 
-# model.load_weights("bed_posture/ckpt_left_9_cores/4_class_deep-{}".format(sub))
+model.load_weights("bed_posture/ckpt_left_9_cores/4_class_deep-{}".format(sub))
 print('------------------------------------------------------------------------')
 print(f'Training for subject {sub} ...')
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=150,
+          epochs=50,
           verbose=1,
           callbacks=[model_checkpoint_callback],
-          validation_split=0.2)
+          validation_split=0)
 
 import os
 scores = []

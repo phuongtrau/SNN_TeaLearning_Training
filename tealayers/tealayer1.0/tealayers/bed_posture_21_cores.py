@@ -39,11 +39,19 @@ exp_i_data = helper.load_exp_i_short("../dataset/experiment-i")
 
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
-train_data = helper.Mat_Dataset(datasets,["Base"],["S3","S6","S5","S9","S11","S13","S2","S1","S8","S10","S12","S7",])
+subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
+
+sub="S7"
+
+subjects.remove(sub)
+random.seed(1)
+random.shuffle(subjects)
+
+train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
 for i in range(len(train_data.samples)):
     train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
     
-test_data = helper.Mat_Dataset(datasets,["Base"],["S4"])
+test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
 for i in range(len(test_data.samples)):
     test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
 
@@ -137,33 +145,32 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.001),
+              optimizer=Adam(lr=0.003),
               metrics=['accuracy'])
 
-checkpoint_filepath = 'bed_posture/ckpt/3_class-S4-epoch-{epoch}'
+import keras
+checkpoint_filepath = 'bed_posture/ckpt/3_class-{}'.format(sub)
 
-model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_filepath,
-    save_weights_only=True,
-    # monitor='val_acc',
-    # mode='auto',
-    save_freq = "epoch",)
-    # save_best_only=True)
 
-model.load_weights("bed_posture/ckpt_3_classes/3_class-S4")
+model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath+'-epoch-{epoch}',
+    save_weights_only=True,)
+
+
+model.load_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=60,
+          epochs=50,
           verbose=1,
           callbacks=[model_checkpoint_callback],
-          validation_split=0.2)
+          validation_split=0)
 
-# model.load_weights("bed_posture/ckpt_3_classes/3_class-S5_1")
+
 import os
 scores = []
 soure = "bed_posture/ckpt"
-ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S4" in e]
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if sub in e]
 for ckpt in ckpts:
     print("======================================")
     print(ckpt)

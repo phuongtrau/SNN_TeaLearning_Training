@@ -36,13 +36,17 @@ from serialization import save as sim_save
 from emulation import write_cores
 
 exp_i_data = helper.load_exp_i_supine("../dataset/experiment-i")
-kernel_ero = np.ones((3,3),np.uint8)
-kernel_dil = np.ones((5,5),np.uint8)
-# print(len(dataset))
+
 datasets = {"Base":exp_i_data}
-list_train = ["S1","S3","S4","S5","S2","S8","S9","S10","S11","S12","S13","S7"]
-random.shuffle(list_train)
-train_data = helper.Mat_Dataset(datasets,["Base"],list_train)
+subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
+
+sub="S2"
+
+subjects.remove(sub)
+random.seed(1)
+random.shuffle(subjects)
+
+train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
 
 x_train = []
 
@@ -56,10 +60,11 @@ for i in range(len(train_data.samples)):
     bin2 = np.array(heat>=mask*127).astype(np.uint8)
     bin3 = np.array(heat>=mask*190).astype(np.uint8)
     bin_out = np.concatenate((bin1,bin2,bin3),axis=2)
+
     x_train.append(bin_out)
  
     
-test_data = helper.Mat_Dataset(datasets,["Base"],["S6"])
+test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
 
 x_test = []
 
@@ -79,15 +84,11 @@ for i in range(len(test_data.samples)):
 x_train = np.array(x_train).astype(np.uint8)
 x_test = np.array(x_test).astype(np.uint8)
 
-# x_train /= 255
-# x_test /= 255
-
 y_train = to_categorical(train_data.labels, 9)
 y_test = to_categorical(test_data.labels, 9)
 
 inputs = Input(shape=(64, 32,9))
 
-# permute = Permute((2,1,3))(inputs)
 flattened = Flatten()(inputs)
 
 flattened_inputs_1 = Lambda(lambda x : x[:,      :2048*3 ])(flattened)
@@ -439,13 +440,12 @@ x3 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
 x4 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
 
 x1_1 = Tea(64)(x1)
-# x1_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x1_1])
+
 x2_1 = Tea(64)(x2)
-# x2_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x2_1])
+
 x3_1 = Tea(64)(x3)
-# x3_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x3_1])
+
 x4_1 = Tea(64)(x4)
-# x4_1 = Average()([x1_1_1,x2_1_1,x3_1_1,x4_1_1,x4_1])
 
 
 x_out = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
@@ -465,34 +465,29 @@ model = Model(inputs=inputs, outputs=predictions)
 #     decay_rate=0.9)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
+              optimizer=Adam(lr=0.0005),
               metrics=['accuracy'])
 
-# callback = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=50)
+checkpoint_filepath = 'bed_posture/ckpt_2/9_class_deep-{}'.format(sub)
 
-checkpoint_filepath = 'bed_posture/ckpt_2/9_class_deep-S6-epoch-{epoch}'
+import keras 
+model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath + '-epoch-{epoch}',
+    save_weights_only=True,)
 
-model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_filepath,
-    save_weights_only=True,
-    # monitor='val_acc',
-    # mode='auto',
-    save_freq = "epoch",)
-    # save_best_only=True)
+model.load_weights("bed_posture/ckpt_supine/9_class_deep-{}".format(sub)) 
 
-# model.load_weights("bed_posture/ckpt_supine/9_class_deep-S6")
-
-# model.fit(x_train, y_train,
-#           batch_size=1024,
-#           epochs=100,
-#           verbose=1,
-#           callbacks=[model_checkpoint_callback],
-#           validation_split=0.2)
+model.fit(x_train, y_train,
+          batch_size=1024,
+          epochs=50,
+          verbose=1,
+          callbacks=[model_checkpoint_callback],
+          validation_split=0)
 
 import os
 scores = []
 soure = "bed_posture/ckpt_2"
-ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if "S6" in e]
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if sub in e]
 for ckpt in ckpts:
     print("======================================")
     print(ckpt)
@@ -506,12 +501,4 @@ for ckpt in ckpts:
 print("Max accuracy:",max(scores))
 print("Best epoch:",ckpts[scores.index(max(scores))])
 
-
-# model.load_weights("bed_posture/ckpt_supine/9_class_deep-S5-val_acc-0.859")   
-
-# score = model.evaluate(x_test, y_test, verbose=0)
-# # if score[1] >= 0.80:
-# #     model.save_weights("bed_posture/ckpt_supine/9_class_deep-S2")
-# print('Test loss:', score[0])
-# print('Test accuracy:', score[1]*100)
 

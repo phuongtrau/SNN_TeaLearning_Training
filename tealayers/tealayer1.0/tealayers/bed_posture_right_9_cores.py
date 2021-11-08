@@ -43,7 +43,7 @@ datasets = {"Base":exp_i_data}
 # random.shuffle(list_train)
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S8"
+sub="S13"
 
 subjects.remove(sub)
 random.shuffle(subjects)
@@ -485,24 +485,24 @@ print('------------------------------------------------------------------------'
 print(f'Training for subject {sub} ...')
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(),
+              optimizer=Adam(lr=0.0005),
               metrics=['accuracy'])
 
-checkpoint_filepath = 'bed_posture/ckpt_3/4_class_deep-S8-epoch-{epoch}'
+checkpoint_filepath = 'bed_posture/ckpt_3/4_class_deep-{}'.format(sub)
 import keras 
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_filepath,
+    filepath=checkpoint_filepath+ '-epoch-{epoch}',
     save_weights_only=True,)
     # save_freq = "epoch",)
 
-# model.load_weights("bed_posture/ckpt_right/4_class_deep-S7")
+model.load_weights("bed_posture/ckpt_right_9_cores/4_class_deep-{}".format(sub)) 
 
 model.fit(x_train, y_train,
           batch_size=64,
-          epochs=100,
+          epochs=50,
           verbose=1,
           callbacks=[model_checkpoint_callback],
-          validation_split=0.2)
+          validation_split=0)
 
 import os
 scores = []
