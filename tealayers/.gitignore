@@ -7,7 +7,8 @@
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 /*.egg
-/tealayer1.0/tealayers/bed_posture/*
-/tealayer1.0/tealayers/supine_21_cores_mem/*
-/tealayer1.0/tealayers/right_21_cores_mem/*
-/tealayer1.0/tealayers/left_21_cores_mem/*
+/tealayer1.0/tealayers/bed_posture/ckpt_17_classes/*
+/tealayer1.0/tealayers/bed_posture/ckpt_17_classes_21_cores/*
+# /tealayer1.0/tealayers/supine_21_cores_mem/*
+# /tealayer1.0/tealayers/right_21_cores_mem/*
+# /tealayer1.0/tealayers/left_21_cores_mem/*

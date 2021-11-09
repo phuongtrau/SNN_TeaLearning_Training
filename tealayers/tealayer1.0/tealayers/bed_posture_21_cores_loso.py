@@ -18,6 +18,7 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 import sys
 sys.path.append("../../../rancutils/rancutils")
+import os
 
 from teaconversion import create_cores,create_packets,get_connections_and_biases
 from packet import Packet
@@ -31,6 +32,9 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import cv2
+from output_bus import OutputBus
+from serialization import save as sim_save
+from emulation import write_cores
 
 exp_i_data = helper.load_exp_i_short("../dataset/experiment-i")
 
@@ -148,8 +152,10 @@ for sub in ls_train_full:
   #         verbose=1,)
   #         # validation_split=0.2)
   model.load_weights("bed_posture/ckpt_3_classes_median/3_class-{}".format(sub))
+
   # model.load_weights("bed_posture/ckpt_3_classes/3_class-S8_1")
   
+
   score = model.evaluate(x_test, y_test, verbose=0)
 
   acc_per_so.append(score[1] * 100)
@@ -159,6 +165,12 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
+  if not os.path.exists("./mem_files/3_classes_21_cores_mem/{}".format(sub)):
+    os.makedirs("./mem_files/3_classes_21_cores_mem/{}".format(sub))
+
+  cores_sim = create_cores(model, 21 , neuron_reset_type=0,num_classes=4) 
+
+  write_cores(cores_sim,max_xy=(1,21),output_path="./mem_files/3_classes_21_cores_mem/{}".format(sub))
 
   # fold_no = fold_no + 1
 

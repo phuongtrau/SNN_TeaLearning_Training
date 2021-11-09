@@ -503,12 +503,12 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
-  # if not os.path.exists(".mem_files/right_21_cores_mem/{}".format(sub)):
-  #   os.makedirs(".mem_files/right_21_cores_mem/{}".format(sub))
+  if not os.path.exists("mem_files/right_21_cores_mem/{}".format(sub)):
+    os.makedirs("mem_files/right_21_cores_mem/{}".format(sub))
 
-  # cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=4) 
+  cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=4) 
 
-  # write_cores(cores_sim,max_xy=(1,16*9+5),output_path=".mem_files/right_21_cores_mem/{}".format(sub))
+  write_cores(cores_sim,max_xy=(1,16*9+5),output_path="mem_files/right_21_cores_mem/{}".format(sub))
   # fold_no = fold_no + 1
 
 # == Provide average scores ==
