@@ -41,7 +41,7 @@ exp_i_data = helper.load_exp_i_short("../dataset/experiment-i")
 datasets = {"Base":exp_i_data}
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S7"
+sub="S4"
 
 subjects.remove(sub)
 random.seed(1)
@@ -145,7 +145,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.003),
+              optimizer=Adam(lr=0.0015),
               metrics=['accuracy'])
 
 import keras
@@ -161,7 +161,7 @@ model.load_weights("bed_posture/ckpt_3_classes/3_class-{}".format(sub))
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=50,
+          epochs=30,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0)
