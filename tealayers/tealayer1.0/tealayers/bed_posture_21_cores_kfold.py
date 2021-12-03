@@ -60,7 +60,7 @@ random.seed(2)
 acc_per_fold = []
 loss_per_fold = []
 
-kfold = KFold(n_splits = 10, shuffle = False)
+kfold = KFold(n_splits = 5, shuffle = False)
 fold_no = 1
 for train,test in kfold.split(x_train,y_train):
       
