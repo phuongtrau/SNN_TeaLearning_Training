@@ -97,14 +97,14 @@ for sub in ls_train_full:
 
 
 
-  # x_train = np.array(x_train)
+  x_train = np.array(x_train)
   x_test = np.array(x_test)
 
-  # y_train = to_categorical(train_data.labels, 4)
+  y_train = to_categorical(train_data.labels, 4)
   y_test = to_categorical(test_data.labels, 4)
 
-  # random.seed(1)
-  # (x_train,y_train) = shuffle(x_train,y_train)
+  random.seed(1)
+  (x_train,y_train) = shuffle(x_train,y_train)
   random.seed(1)
   (x_test,y_test) = shuffle(x_test,y_test)
 
