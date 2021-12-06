@@ -4,7 +4,7 @@ from __future__ import print_function
 import operator
 import functools
 import math
-import os
+import os 
 
 import tensorflow as tf
 import numpy as np
@@ -36,78 +36,48 @@ from output_bus import OutputBus
 from serialization import save as sim_save
 from emulation import write_cores
 
-exp_i_data = helper.load_exp_i_left("../dataset/experiment-i",preprocess=False)
+exp_i_data = helper.load_exp_i_left("../dataset/experiment-i")
 
 # print(len(dataset))
 datasets = {"Base":exp_i_data}
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
+train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
+
+x_train = []
+for i in range(len(train_data.samples)):
+    mask = np.ones_like(train_data.samples[i])
+    
+    train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
+
+    e_1 = np.array(train_data.samples[i]>=mask*25).astype(float)
+    e_2 = np.array(train_data.samples[i]>=mask*50).astype(float)
+    e_3 = np.array(train_data.samples[i]>=mask*75).astype(float)
+    e_4 = np.array(train_data.samples[i]>=mask*100).astype(float)
+    e_5 = np.array(train_data.samples[i]>=mask*125).astype(float)
+    e_6 = np.array(train_data.samples[i]>=mask*150).astype(float)
+    e_7 = np.array(train_data.samples[i]>=mask*175).astype(float)
+    e_8 = np.array(train_data.samples[i]>=mask*200).astype(float)
+    e_9 = np.array(train_data.samples[i]>=mask*225).astype(float)
+    
+    # print(e_1[:,:,np.newaxis].shape)
+    x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
+                                  e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
+                                  e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2))
+x_train = np.array(x_train)
+
+y_train = to_categorical(train_data.labels, 4)
+
+random.seed(1)
+(x_train,y_train) = shuffle(x_train,y_train)
+
 # Define per-fold score containers
-acc_per_so = []
-loss_per_so = []
-ls_train_full = subjects.copy()
-for sub in ls_train_full:
+acc_per_fold = []
+loss_per_fold = []
 
-  subjects.remove(sub)
-  train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
-  x_train = []
-  for i in range(len(train_data.samples)):
-      mask = np.ones_like(train_data.samples[i])
-      
-      # train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
-
-      e_1 = np.array(train_data.samples[i]>=mask*25).astype(float)
-      e_2 = np.array(train_data.samples[i]>=mask*50).astype(float)
-      e_3 = np.array(train_data.samples[i]>=mask*75).astype(float)
-      e_4 = np.array(train_data.samples[i]>=mask*100).astype(float)
-      e_5 = np.array(train_data.samples[i]>=mask*125).astype(float)
-      e_6 = np.array(train_data.samples[i]>=mask*150).astype(float)
-      e_7 = np.array(train_data.samples[i]>=mask*175).astype(float)
-      e_8 = np.array(train_data.samples[i]>=mask*200).astype(float)
-      e_9 = np.array(train_data.samples[i]>=mask*225).astype(float)
-      
-      # print(e_1[:,:,np.newaxis].shape)
-      x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
-                                    e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                    e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2))
-
-
-  test_data = helper.Mat_Dataset(datasets,["Base"],[sub])
-  x_test = []
-  for i in range(len(test_data.samples)):
-      mask = np.ones_like(test_data.samples[i])
-      
-      # test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-
-      e_1 = np.array(test_data.samples[i]>=mask*25).astype(float)
-      e_2 = np.array(test_data.samples[i]>=mask*50).astype(float)
-      e_3 = np.array(test_data.samples[i]>=mask*75).astype(float)
-      e_4 = np.array(test_data.samples[i]>=mask*100).astype(float)
-      e_5 = np.array(test_data.samples[i]>=mask*125).astype(float)
-      e_6 = np.array(test_data.samples[i]>=mask*150).astype(float)
-      e_7 = np.array(test_data.samples[i]>=mask*175).astype(float)
-      e_8 = np.array(test_data.samples[i]>=mask*200).astype(float)
-      e_9 = np.array(test_data.samples[i]>=mask*225).astype(float)
-
-
-      # print(e_1[:,:,np.newaxis].shape)
-      x_test.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis],\
-                                    e_4[:,:,np.newaxis],e_5[:,:,np.newaxis],e_6[:,:,np.newaxis],\
-                                    e_7[:,:,np.newaxis],e_8[:,:,np.newaxis],e_9[:,:,np.newaxis]),axis=2))
-
-
-
-  x_train = np.array(x_train)
-  x_test = np.array(x_test)
-
-  y_train = to_categorical(train_data.labels, 4)
-  y_test = to_categorical(test_data.labels, 4)
-
-  random.seed(1)
-  (x_train,y_train) = shuffle(x_train,y_train)
-  random.seed(1)
-  (x_test,y_test) = shuffle(x_test,y_test)
-
+kfold = KFold(n_splits = 5, shuffle = True)
+fold_no = 1
+for train,test in kfold.split(x_train,y_train):
   inputs = Input(shape=(64, 32,9,))
 
   # permute = Permute((2,1,3))(inputs)
@@ -485,48 +455,35 @@ for sub in ls_train_full:
   model = Model(inputs=inputs, outputs=predictions)
 
   model.compile(loss='categorical_crossentropy',
-                optimizer=Adam(lr=0.001),
+                optimizer=Adam(lr=0.0005),
                 metrics=['accuracy'])
-  
+
   print('------------------------------------------------------------------------')
-  print(f'Training for subject {sub} ...')
+  print(f'Training for fold {fold_no} ...')
 
-  model.fit(x_train, y_train,
+  model.fit(x_train[train], y_train[train],
             batch_size=64,
-            epochs=20,
-            verbose=1,)
-            # validation_split=0.2)
-
-  # model.load_weights("bed_posture/ckpt_left_9_cores_nocrop/4_class_deep-{}".format(sub))
-  score = model.evaluate(x_test, y_test, verbose=0)
-       
-  acc_per_so.append(score[1] * 100)
-  loss_per_so.append(score[0])
+            epochs=30,
+            verbose=1,
+            validation_split=0.2)
+  score = model.evaluate(x_train[test], y_train[test], verbose=0)
   
-  subjects = ls_train_full.copy()
-
+  acc_per_fold.append(score[1] * 100)
+  loss_per_fold.append(score[0])
+  
   print('Test loss:', score[0])
-  print('Test accuracy:', score[1])
-  # if not os.path.exists("mem_files/left_21_cores_mem/{}".format(sub)):
-  #   os.makedirs("mem_files/left_21_cores_mem/{}".format(sub))
+  print('Test accuracy:', score[1]*100,'%')
 
-  # cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=4) 
-
-  # write_cores(cores_sim,max_xy=(1,16*9+5),output_path="mem_files/left_21_cores_mem/{}".format(sub))
-  # fold_no = fold_no + 1
+  fold_no = fold_no + 1
 
 # == Provide average scores ==
 print('------------------------------------------------------------------------')
-print('Score per subject out')
-for i in range(0, len(acc_per_so)):
+print('Score per fold')
+for i in range(0, len(acc_per_fold)):
   print('------------------------------------------------------------------------')
-  print(f'> Subject {i+1} - Loss: {loss_per_so[i]} - Accuracy: {acc_per_so[i]}%')
+  print(f'> Fold {i+1} - Loss: {loss_per_fold[i]} - Accuracy: {acc_per_fold[i]}%')
 print('------------------------------------------------------------------------')
-print('Average scores for all subject out:')
-print(f'> Accuracy: {np.mean(acc_per_so)} (+- {np.std(acc_per_so)})')
-print(f'> Loss: {np.mean(loss_per_so)}')
+print('Average scores for all folds:')
+print(f'> Accuracy: {np.mean(acc_per_fold)} (+- {np.std(acc_per_fold)})')
+print(f'> Loss: {np.mean(loss_per_fold)}')
 print('------------------------------------------------------------------------')
-
-for i in range(0, len(acc_per_so)):
-  print(f'{acc_per_so[i]}%')
-print(f'Accuracy: {np.mean(acc_per_so)}%')

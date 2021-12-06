@@ -487,7 +487,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.0015),
+              optimizer=Adam(lr=0.001),
               metrics=['accuracy'])
 
 checkpoint_filepath = 'bed_posture/ckpt_3/4_class_deep-{}'.format(sub)
@@ -503,7 +503,7 @@ print(f'Training for subject {sub} ...')
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=50,
+          epochs=30,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0.2)

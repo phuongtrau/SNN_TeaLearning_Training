@@ -485,7 +485,7 @@ for sub in ls_train_full:
   print(f'Training for subject {sub} ...')
 
   model.fit(x_train, y_train,
-          batch_size=256,
+          batch_size=64,
           epochs=20,
           # callbacks=[callback],
           verbose=1,)

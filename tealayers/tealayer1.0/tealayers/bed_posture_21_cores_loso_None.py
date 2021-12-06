@@ -147,7 +147,7 @@ for sub in ls_train_full:
   print(f'Training for subject {sub} ...')
 
   model.fit(x_train, y_train,
-          batch_size=1024,
+          batch_size=64,
           epochs=10,
           verbose=1,)
           # validation_split=0.2)
