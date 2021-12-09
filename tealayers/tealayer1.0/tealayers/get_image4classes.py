@@ -35,13 +35,35 @@ from output_bus import OutputBus
 from serialization import save as sim_save
 from emulation import write_cores
 
-exp_i_data = helper.load_exp_i_supine("../dataset/experiment-i")
-# kernel = np.ones((3,3),np.uint8)*200
-# print(len(dataset))
-datasets = {"Base":exp_i_data}
-test_data = helper.Mat_Dataset(datasets,["Base"],["S10","S11","S12","S13"])
+exp_i_data = helper.load_exp_i("../dataset/experiment-i")
 
-for i in range(len(test_data.samples)):
-    test_data.samples[i] = cv2.equalizeHist(test_data.samples[i])
-    cv2.imwrite("./image_test/{}_{}.jpg".format(test_data.labels[i],i),test_data.samples[i])
-print("done")
+datasets = {"Base":exp_i_data}
+subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
+supine = [0,7,8,9,10,11,14,15,16]
+left = [2,5,6,13]
+right = [1,3,4,12]
+
+for sub in subjects:
+    data = helper.Mat_Dataset(datasets,["Base"],[sub])
+    
+    for i in range(len(data.samples)):    
+        data.samples[i] = cv2.equalizeHist(data.samples[i])
+        if data.labels[i] in supine :
+            class_1 = 0
+            class_2 = supine.index(data.labels[i])
+            # print(data.samples[i].shape)
+            heat = cv2.applyColorMap(data.samples[i], cv2.COLORMAP_JET)
+            print("supine")
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),heat)
+        elif data.labels[i] in left :
+            class_1 = 1
+            class_2 = left.index(data.labels[i])
+            print("left")
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+        else :
+            class_1 = 2
+            class_2 = right.index(data.labels[i])
+            print("right")
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+        # print("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2))
+    print("done {}".format(sub))
