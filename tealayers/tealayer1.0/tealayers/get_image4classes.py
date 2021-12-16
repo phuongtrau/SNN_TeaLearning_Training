@@ -54,16 +54,21 @@ for sub in subjects:
             # print(data.samples[i].shape)
             heat = cv2.applyColorMap(data.samples[i], cv2.COLORMAP_JET)
             print("supine")
-            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),heat)
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/gray/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/heat/{}/{}_{}_{}_heat.jpg".format(sub,i,class_1,class_2),heat)
         elif data.labels[i] in left :
             class_1 = 1
             class_2 = left.index(data.labels[i])
+            heat = cv2.applyColorMap(data.samples[i], cv2.COLORMAP_JET)
             print("left")
-            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/gray/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/heat/{}/{}_{}_{}_heat.jpg".format(sub,i,class_1,class_2),heat)
         else :
             class_1 = 2
             class_2 = right.index(data.labels[i])
+            heat = cv2.applyColorMap(data.samples[i], cv2.COLORMAP_JET)
             print("right")
-            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/gray/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2),data.samples[i])
+            cv2.imwrite("/home/hoangphuong/Documents/image_Pmatdata/heat/{}/{}_{}_{}_heat.jpg".format(sub,i,class_1,class_2),heat)
         # print("/home/hoangphuong/Documents/image_Pmatdata/{}/{}_{}_{}.jpg".format(sub,i,class_1,class_2))
     print("done {}".format(sub))

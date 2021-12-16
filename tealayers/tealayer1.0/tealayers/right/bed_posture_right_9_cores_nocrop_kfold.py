@@ -75,7 +75,7 @@ random.seed(1)
 acc_per_fold = []
 loss_per_fold = []
 
-kfold = KFold(n_splits = 5, shuffle = True)
+kfold = KFold(n_splits = 10, shuffle = True)
 fold_no = 1
 for train,test in kfold.split(x_train,y_train):
   inputs = Input(shape=(64, 32,9,))
@@ -465,7 +465,7 @@ for train,test in kfold.split(x_train,y_train):
             batch_size=64,
             epochs=30,
             verbose=1,
-            validation_split=0.2)
+            validation_split=0)
   score = model.evaluate(x_train[test], y_train[test], verbose=0)
   
   acc_per_fold.append(score[1] * 100)

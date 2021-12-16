@@ -1,0 +1,254 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+import operator
+import functools
+import math
+import os 
+
+import tensorflow as tf
+import numpy as np
+from keras import backend as K
+from keras import Model
+from keras.engine.topology import Layer
+from keras import initializers
+from keras.models import Sequential
+from keras.layers import Dropout, Flatten, Activation, Input, Lambda, Concatenate,Average,Permute
+from keras.datasets import mnist,fashion_mnist
+from keras.optimizers import Adam
+from keras.utils import to_categorical
+import sys
+sys.path.append("../../../../rancutils/rancutils")
+
+from teaconversion import create_cores,create_packets,get_connections_and_biases
+from packet import Packet
+sys.path.append("../")
+# from tea import Tea
+from additivepooling import AdditivePooling
+import helper
+from tea import Tea
+import random
+from sklearn.utils import shuffle
+from sklearn.model_selection import KFold
+import matplotlib.pyplot as plt
+import cv2
+from output_bus import OutputBus
+from serialization import save as sim_save
+from emulation import write_cores
+
+exp_i_data = helper.load_exp_i_right("../../dataset/experiment-i")
+
+# print(len(dataset))
+datasets = {"Base":exp_i_data}
+subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
+
+train_data = helper.Mat_Dataset(datasets,["Base"],subjects)
+
+x_train = []
+for i in range(len(train_data.samples)):
+    mask = np.ones_like(train_data.samples[i])
+    
+    train_data.samples[i] = cv2.equalizeHist(train_data.samples[i])
+
+    e_1 = np.array(train_data.samples[i]>=mask*63).astype(float)
+    e_2 = np.array(train_data.samples[i]>=mask*127).astype(float)
+    e_3 = np.array(train_data.samples[i]>=mask*190).astype(float)
+    
+    # print(e_1[:,:,np.newaxis].shape)
+    x_train.append(np.concatenate((e_1[:,:,np.newaxis],e_2[:,:,np.newaxis],e_3[:,:,np.newaxis]),axis=2))
+x_train = np.array(x_train)
+
+y_train = to_categorical(train_data.labels, 4)
+
+random.seed(1)
+(x_train,y_train) = shuffle(x_train,y_train)
+
+# Define per-fold score containers
+acc_per_fold = []
+loss_per_fold = []
+
+kfold = KFold(n_splits = 5, shuffle = True)
+fold_no = 1
+for train,test in kfold.split(x_train,y_train):
+  inputs = Input(shape=(64, 32,3,))
+
+  # permute = Permute((2,1,3))(inputs)
+
+  flattened_inputs = Flatten()(inputs)
+
+  flattened_inputs_1 = Lambda(lambda x : x[:,      :1*2048])(flattened_inputs)
+  flattened_inputs_2 = Lambda(lambda x : x[:,1*2048:2*2048])(flattened_inputs)
+  flattened_inputs_3 = Lambda(lambda x : x[:,2*2048:3*2048])(flattened_inputs)
+
+  x1_1  = Lambda(lambda x : x[:,     :256 ])(flattened_inputs_1)
+  x2_1  = Lambda(lambda x : x[:, 119 : 375 ])(flattened_inputs_1)
+  x3_1  = Lambda(lambda x : x[:, 238 :494 ])(flattened_inputs_1)
+  x4_1  = Lambda(lambda x : x[:, 357 : 613])(flattened_inputs_1)
+  x5_1  = Lambda(lambda x : x[:, 476:732])(flattened_inputs_1)
+  x6_1  = Lambda(lambda x : x[:, 595:851])(flattened_inputs_1)
+  x7_1  = Lambda(lambda x : x[:, 714:970])(flattened_inputs_1)
+  x8_1  = Lambda(lambda x : x[:, 833:1089])(flattened_inputs_1)
+  x9_1  = Lambda(lambda x : x[:, 952:1208])(flattened_inputs_1)
+  x10_1  = Lambda(lambda x : x[:, 1071:1327])(flattened_inputs_1)
+  x11_1  = Lambda(lambda x : x[:, 1190:1446])(flattened_inputs_1)
+  x12_1  = Lambda(lambda x : x[:, 1309:1565])(flattened_inputs_1)
+  x13_1  = Lambda(lambda x : x[:, 1428:1684])(flattened_inputs_1)
+  x14_1  = Lambda(lambda x : x[:, 1547:1803])(flattened_inputs_1)
+  x15_1  = Lambda(lambda x : x[:, 1666:1922])(flattened_inputs_1)
+  x16_1  = Lambda(lambda x : x[:, 1785:2041])(flattened_inputs_1)
+
+  x1_1  = Tea(64)(x1_1)
+  x2_1  = Tea(64)(x2_1)
+  x3_1  = Tea(64)(x3_1)
+  x4_1  = Tea(64)(x4_1)
+  x5_1  = Tea(64)(x5_1)
+  x6_1  = Tea(64)(x6_1)
+  x7_1  = Tea(64)(x7_1)
+  x8_1  = Tea(64)(x8_1)
+  x9_1  = Tea(64)(x9_1)
+  x10_1  = Tea(64)(x10_1)
+  x11_1  = Tea(64)(x11_1)
+  x12_1  = Tea(64)(x12_1)
+  x13_1  = Tea(64)(x13_1)
+  x14_1  = Tea(64)(x14_1)
+  x15_1  = Tea(64)(x15_1)
+  x16_1  = Tea(64)(x16_1)
+
+  x1_2  = Lambda(lambda x : x[:,     :256 ])(flattened_inputs_2)
+  x2_2  = Lambda(lambda x : x[:, 119 : 375 ])(flattened_inputs_2)
+  x3_2  = Lambda(lambda x : x[:, 238 :494 ])(flattened_inputs_2)
+  x4_2  = Lambda(lambda x : x[:, 357 : 613])(flattened_inputs_2)
+  x5_2  = Lambda(lambda x : x[:, 476:732])(flattened_inputs_2)
+  x6_2  = Lambda(lambda x : x[:, 595:851])(flattened_inputs_2)
+  x7_2  = Lambda(lambda x : x[:, 714:970])(flattened_inputs_2)
+  x8_2  = Lambda(lambda x : x[:, 833:1089])(flattened_inputs_2)
+  x9_2  = Lambda(lambda x : x[:, 952:1208])(flattened_inputs_2)
+  x10_2  = Lambda(lambda x : x[:, 1071:1327])(flattened_inputs_2)
+  x11_2  = Lambda(lambda x : x[:, 1190:1446])(flattened_inputs_2)
+  x12_2  = Lambda(lambda x : x[:, 1309:1565])(flattened_inputs_2)
+  x13_2  = Lambda(lambda x : x[:, 1428:1684])(flattened_inputs_2)
+  x14_2  = Lambda(lambda x : x[:, 1547:1803])(flattened_inputs_2)
+  x15_2  = Lambda(lambda x : x[:, 1666:1922])(flattened_inputs_2)
+  x16_2  = Lambda(lambda x : x[:, 1785:2041])(flattened_inputs_2)
+
+  x1_2  = Tea(64)(x1_2)
+  x2_2  = Tea(64)(x2_2)
+  x3_2  = Tea(64)(x3_2)
+  x4_2  = Tea(64)(x4_2)
+  x5_2  = Tea(64)(x5_2)
+  x6_2  = Tea(64)(x6_2)
+  x7_2  = Tea(64)(x7_2)
+  x8_2  = Tea(64)(x8_2)
+  x9_2  = Tea(64)(x9_2)
+  x10_2  = Tea(64)(x10_2)
+  x11_2  = Tea(64)(x11_2)
+  x12_2  = Tea(64)(x12_2)
+  x13_2  = Tea(64)(x13_2)
+  x14_2  = Tea(64)(x14_2)
+  x15_2  = Tea(64)(x15_2)
+  x16_2  = Tea(64)(x16_2)
+
+  x1_3  = Lambda(lambda x : x[:,     :256 ])(flattened_inputs_3)
+  x2_3  = Lambda(lambda x : x[:, 119 : 375 ])(flattened_inputs_3)
+  x3_3  = Lambda(lambda x : x[:, 238 :494 ])(flattened_inputs_3)
+  x4_3  = Lambda(lambda x : x[:, 357 : 613])(flattened_inputs_3)
+  x5_3  = Lambda(lambda x : x[:, 476:732])(flattened_inputs_3)
+  x6_3  = Lambda(lambda x : x[:, 595:851])(flattened_inputs_3)
+  x7_3  = Lambda(lambda x : x[:, 714:970])(flattened_inputs_3)
+  x8_3  = Lambda(lambda x : x[:, 833:1089])(flattened_inputs_3)
+  x9_3  = Lambda(lambda x : x[:, 952:1208])(flattened_inputs_3)
+  x10_3  = Lambda(lambda x : x[:, 1071:1327])(flattened_inputs_3)
+  x11_3  = Lambda(lambda x : x[:, 1190:1446])(flattened_inputs_3)
+  x12_3  = Lambda(lambda x : x[:, 1309:1565])(flattened_inputs_3)
+  x13_3  = Lambda(lambda x : x[:, 1428:1684])(flattened_inputs_3)
+  x14_3  = Lambda(lambda x : x[:, 1547:1803])(flattened_inputs_3)
+  x15_3  = Lambda(lambda x : x[:, 1666:1922])(flattened_inputs_3)
+  x16_3  = Lambda(lambda x : x[:, 1785:2041])(flattened_inputs_3)
+
+  x1_3  = Tea(64)(x1_3)
+  x2_3  = Tea(64)(x2_3)
+  x3_3  = Tea(64)(x3_3)
+  x4_3  = Tea(64)(x4_3)
+  x5_3  = Tea(64)(x5_3)
+  x6_3  = Tea(64)(x6_3)
+  x7_3  = Tea(64)(x7_3)
+  x8_3  = Tea(64)(x8_3)
+  x9_3  = Tea(64)(x9_3)
+  x10_3  = Tea(64)(x10_3)
+  x11_3  = Tea(64)(x11_3)
+  x12_3  = Tea(64)(x12_3)
+  x13_3  = Tea(64)(x13_3)
+  x14_3  = Tea(64)(x14_3)
+  x15_3  = Tea(64)(x15_3)
+  x16_3  = Tea(64)(x16_3)
+
+  x1_1_1 = Average()([x1_1,x1_2,x1_3])
+  x2_1_1 = Average()([x2_1,x2_2,x2_3])
+  x3_1_1 = Average()([x3_1,x3_2,x3_3])
+  x4_1_1 = Average()([x4_1,x4_2,x4_3])
+  x5_1_1 = Average()([x5_1,x5_2,x5_3])
+  x6_1_1 = Average()([x6_1,x6_2,x6_3])
+  x7_1_1 = Average()([x7_1,x7_2,x7_3])
+  x8_1_1 = Average()([x8_1,x8_2,x8_3])
+  x9_1_1 = Average()([x9_1,x9_2,x9_3])
+  x10_1_1 = Average()([x10_1,x10_2,x10_3])
+  x11_1_1 = Average()([x11_1,x11_2,x11_3])
+  x12_1_1 = Average()([x12_1,x12_2,x12_3])
+  x13_1_1 = Average()([x13_1,x13_2,x13_3])
+  x14_1_1 = Average()([x14_1,x14_2,x14_3])
+  x15_1_1 = Average()([x15_1,x15_2,x15_3])
+  x16_1_1 = Average()([x16_1,x16_2,x16_3])
+
+  x1_1 = Concatenate(axis=1)([x1_1_1,x2_1_1,x3_1_1,x4_1_1])
+  x2_1 = Concatenate(axis=1)([x5_1_1,x6_1_1,x7_1_1,x8_1_1])
+  x3_1 = Concatenate(axis=1)([x9_1_1,x10_1_1,x11_1_1,x12_1_1])
+  x4_1 = Concatenate(axis=1)([x13_1_1,x14_1_1,x15_1_1,x16_1_1])
+
+  x1_1 = Tea(64)(x1_1)
+  x2_1 = Tea(64)(x2_1)
+  x3_1 = Tea(64)(x3_1)
+  x4_1 = Tea(64)(x4_1)
+
+  x_out_1 = Concatenate(axis=1)([x1_1,x2_1,x3_1,x4_1])
+
+  x_out_1 = Tea(256)(x_out_1)
+
+  x_out = AdditivePooling(4)(x_out_1)
+
+  predictions = Activation('softmax')(x_out)
+
+  model = Model(inputs=inputs, outputs=predictions)
+
+  model.compile(loss='categorical_crossentropy',
+                optimizer=Adam(lr=0.001),
+                metrics=['accuracy'])
+
+  print('------------------------------------------------------------------------')
+  print(f'Training for fold {fold_no} ...')
+
+  model.fit(x_train[train], y_train[train],
+            batch_size=64,
+            epochs=20,
+            verbose=1,
+            validation_split=0.2)
+  score = model.evaluate(x_train[test], y_train[test], verbose=0)
+  
+  acc_per_fold.append(score[1] * 100)
+  loss_per_fold.append(score[0])
+  
+  print('Test loss:', score[0])
+  print('Test accuracy:', score[1]*100,'%')
+
+  fold_no = fold_no + 1
+
+# == Provide average scores ==
+print('------------------------------------------------------------------------')
+print('Score per fold')
+for i in range(0, len(acc_per_fold)):
+  print('------------------------------------------------------------------------')
+  print(f'> Fold {i+1} - Loss: {loss_per_fold[i]} - Accuracy: {acc_per_fold[i]}%')
+print('------------------------------------------------------------------------')
+print('Average scores for all folds:')
+print(f'> Accuracy: {np.mean(acc_per_fold)} (+- {np.std(acc_per_fold)})')
+print(f'> Loss: {np.mean(loss_per_fold)}')
+print('------------------------------------------------------------------------')
