@@ -41,46 +41,46 @@ x_train_copy[:,:,:]=x_train
 x_test_copy = np.empty_like(x_test)
 x_test_copy[:,:,:]=x_test
 
-y_train_copy = np.empty_like(y_train)
-y_train_copy[:,:]=y_train
+# y_train_copy = np.empty_like(y_train)
+# y_train_copy=y_train
 
-y_test_copy = np.empty_like(y_test)
-y_test_copy[:,:]=y_test
+# y_test_copy = np.empty_like(y_test)
+# y_test_copy=y_test
 
-print(y_test.shape)
+# print(y_test[1])
 
 del x_train
 del x_test
-del y_test
-del y_train
+# del y_test
+# del y_train
 
 train_data = x_train_copy
 test_data = x_test_copy
-train_label = y_train_copy
-test_label = y_test_copy
+train_label = y_train
+test_label = y_test
 
-y_train = []
+y_train_new = []
 for i in range(len(y_train)):
     if train_label[i] == 0 or train_label[i] == 2 or train_label[i] == 4 or train_label[i] == 6:
-        y_train.append(3)
+        y_train_new.append(3)
     elif train_label[i] == 1 or train_label[i] == 3:
-        y_train.append(1)
+        y_train_new.append(1)
     elif train_label[i] == 5 or train_label[i] == 7 or train_label[i] == 9 :
-        y_train.append(0)
+        y_train_new.append(0)
     else:
-        y_train.append(2)
-
-y_test = []
+        y_train_new.append(2)
+# print(y_train_new)
+y_test_new = []
 
 for i in range(len(y_test)):
     if test_label[i] == 0 or test_label[i] == 2 or test_label[i] == 4 or test_label[i] == 6:
-        y_test.append(3)
+        y_test_new.append(3)
     elif test_label[i] == 1 or test_label[i] == 3:
-        y_test.append(1)
+        y_test_new.append(1)
     elif test_label[i] == 5 or test_label[i] == 7 or test_label[i] == 9 :
-        y_test.append(0)
+        y_test_new.append(0)
     else:
-        y_test.append(2)
+        y_test_new.append(2)
 # print(train_data[0].shape)
 
 x_train = []
@@ -125,15 +125,17 @@ for i in range(len(test_data)):
 x_train = np.array(x_train)
 x_test = np.array(x_test)
 
+y_train = np.array(y_train_new)
+# print(y_train.shape)
+y_test=np.array(y_test_new)
 
+y_train = to_categorical(y_train, 4)
+y_test = to_categorical(y_test, 4)
 
-y_train = to_categorical(train_label, 4)
-y_test = to_categorical(test_label, 4)
-
-random.seed(1)
-(x_train,y_train) = shuffle(x_train,y_train)
-random.seed(1)
-(x_test,y_test) = shuffle(x_test,y_test)
+# random.seed(1)
+# (x_train,y_train) = shuffle(x_train,y_train)
+# random.seed(1)
+# (x_test,y_test) = shuffle(x_test,y_test)
 
 
 inputs = Input(shape=(28, 28, 5,))
@@ -498,7 +500,7 @@ model.compile(loss='categorical_crossentropy',
               optimizer=Adam(lr=0.001),
               metrics=['accuracy'])
 
-checkpoint_filepath = './ckpt_fashion/10_class_fashion'
+checkpoint_filepath = './ckpt_fashion/4_class_fashion'
 
 import keras 
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -506,7 +508,7 @@ model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     save_weights_only=True,)
 # model.load_weights('./ckpt_fashion/10_class_fashion-epoch-7')
 model.fit(x_train, y_train,
-          batch_size=32,
+          batch_size=256,
           epochs=20,
           verbose=1,
           callbacks=[model_checkpoint_callback],
