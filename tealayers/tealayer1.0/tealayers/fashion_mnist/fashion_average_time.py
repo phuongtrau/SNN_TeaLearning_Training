@@ -482,16 +482,37 @@ model.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 model.summary()
+
+checkpoint_filepath = './ckpt_fashion/10_class_fashion'
+
+import keras 
+model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath + '-epoch-{epoch}',
+    save_weights_only=True,)
+# model.load_weights('./ckpt_fashion/10_class_fashion-epoch-7')
 model.fit(x_train, y_train,
-          batch_size=8,
-          epochs=10,
+          batch_size=128,
+          epochs=30,
           verbose=1,
+          callbacks=[model_checkpoint_callback],
           validation_split=0.2)
 
-score = model.evaluate(x_test, y_test, verbose=0)
+import os
+scores = []
+soure = "./ckpt_fashion"
+ckpts = [os.path.join(soure,e) for e in os.listdir(soure)]
+for ckpt in ckpts:
+    print("======================================")
+    print(ckpt)
+    print("======================================")
+    model.load_weights(ckpt)      
+    score = model.evaluate(x_test, y_test, verbose=0)
+    print('Test loss:', score[0])
+    print('Test accuracy:', score[1])
+    scores.append(score[1])
 
-print('Test loss new:', score[0])
-print('Test accuracy new:', score[1])
+print("Max accuracy:",max(scores))
+print("Best epoch:",ckpts[scores.index(max(scores))])
 
 # cores_sim = create_cores(model, 20,neuron_reset_type=0 ) 
 # write_cores(cores_sim,output_path="/home/phuongdh/Documents/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/out_new")

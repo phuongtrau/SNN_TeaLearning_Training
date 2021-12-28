@@ -476,8 +476,8 @@ model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     save_weights_only=True,)
 # model.load_weights('./ckpt_fashion/10_class_fashion-epoch-7')
 model.fit(x_train, y_train,
-          batch_size=32,
-          epochs=20,
+          batch_size=256,
+          epochs=30,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0.2)
