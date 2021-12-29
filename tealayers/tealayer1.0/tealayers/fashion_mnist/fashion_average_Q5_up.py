@@ -503,13 +503,13 @@ import keras
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath + '-epoch-{epoch}',
     save_weights_only=True,)
-# model.load_weights('./ckpt_fashion/10_class_fashion-epoch-7')
+# model.load_weights('./ckpt_fashion/4_class_fashion-epoch-14')
 model.fit(x_train, y_train,
           batch_size=128,
           epochs=20,
           verbose=1,
           callbacks=[model_checkpoint_callback],
-          validation_split=0.2)
+          validation_split=0)
 
 import os
 scores = []

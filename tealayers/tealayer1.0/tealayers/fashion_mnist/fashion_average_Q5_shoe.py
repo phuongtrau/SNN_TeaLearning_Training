@@ -498,7 +498,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.001),
+              optimizer=Adam(lr=0.0001),
               metrics=['accuracy'])
 checkpoint_filepath = './ckpt_fashion/3_class_fashion'
 
@@ -506,7 +506,7 @@ import keras
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath + '-epoch-{epoch}',
     save_weights_only=True,)
-# model.load_weights('./ckpt_fashion/3_class_fashion-epoch-4')
+model.load_weights('./ckpt_fashion/3_class_fashion-epoch-4')
 model.fit(x_train, y_train,
           batch_size=128,
           epochs=20,
