@@ -40,7 +40,7 @@ exp_i_data = helper.load_exp_i_supine("../../dataset/experiment-i")
 datasets = {"Base":exp_i_data}
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S2"
+sub="S13"
 
 subjects.remove(sub)
 random.seed(1)
@@ -465,10 +465,10 @@ model = Model(inputs=inputs, outputs=predictions)
 #     decay_rate=0.9)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.0005),
+              optimizer=Adam(lr=0.00075),
               metrics=['accuracy'])
 
-checkpoint_filepath = '../bed_posture/ckpt_2/9_class_deep-{}'.format(sub)
+checkpoint_filepath = '../bed_posture/ckpt_3/9_class_deep-{}'.format(sub)
 
 import keras 
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -476,17 +476,18 @@ model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     save_weights_only=True,)
 
 model.load_weights("../bed_posture/ckpt_supine/9_class_deep-{}".format(sub)) 
+# model.load_weights("/home/hoangphuong/Documents/SNN_TeaLearning_Training/tealayers/tealayer1.0/tealayers/bed_posture/ckpt_supine/update/sub-S5-0.9465.sub-S5-0.9465.index") 
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=50,
+          epochs=10,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0)
 
 import os
 scores = []
-soure = "../bed_posture/ckpt_2"
+soure = "../bed_posture/ckpt_3"
 ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if sub in e]
 for ckpt in ckpts:
     print("======================================")

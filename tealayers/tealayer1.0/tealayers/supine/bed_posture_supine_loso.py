@@ -30,7 +30,7 @@ from tea import Tea
 # import random
 from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import cv2
 from output_bus import OutputBus
 from serialization import save as sim_save
@@ -485,12 +485,12 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
-  if not os.path.exists("../mem_files/supine_21_cores_mem/{}".format(sub)):
-    os.makedirs("../mem_files/supine_21_cores_mem/{}".format(sub))
+  # if not os.path.exists("../mem_files/supine_21_cores_mem/{}".format(sub)):
+  #   os.makedirs("../mem_files/supine_21_cores_mem/{}".format(sub))
 
-  cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=9) 
+  # cores_sim = create_cores(model, 16*9+5 , neuron_reset_type=0,num_classes=9) 
 
-  write_cores(cores_sim,max_xy=(1,16*9+5),output_path="mem_files/supine_21_cores_mem/{}".format(sub))
+  # write_cores(cores_sim,max_xy=(1,16*9+5),output_path="mem_files/supine_21_cores_mem/{}".format(sub))
 
 # == Provide average scores ==
 print('------------------------------------------------------------------------')

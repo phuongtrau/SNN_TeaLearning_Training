@@ -42,7 +42,7 @@ datasets = {"Base":exp_i_data}
 
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S8"
+sub="S1"
 
 subjects.remove(sub)
 random.seed(2)
@@ -487,10 +487,10 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.0025),
+              optimizer=Adam(lr=0.001),
               metrics=['accuracy'])
 
-checkpoint_filepath = '../bed_posture/ckpt/4_class_deep-{}'.format(sub)
+checkpoint_filepath = '../bed_posture/ckpt_3/4_class_deep-{}'.format(sub)
 import keras
 model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath + '-epoch-{epoch}',
@@ -503,7 +503,7 @@ print(f'Training for subject {sub} ...')
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=50,
+          epochs=10,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0)
@@ -511,7 +511,7 @@ model.fit(x_train, y_train,
 import os
 scores = []
 # soure = "bed_posture/ckpt_left_9_cores_nocrop"
-soure = "../bed_posture/ckpt"
+soure = "../bed_posture/ckpt_3"
 ckpts = [os.path.join(soure,e) for e in os.listdir(soure) if sub in e]
 for ckpt in ckpts:
     print("======================================")

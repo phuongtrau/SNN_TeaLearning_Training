@@ -42,7 +42,7 @@ datasets = {"Base":exp_i_data}
 
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S1"
+sub="S10"
 
 subjects.remove(sub)
 random.seed(2)
@@ -487,7 +487,7 @@ predictions = Activation('softmax')(x_out)
 model = Model(inputs=inputs, outputs=predictions)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.001),
+              optimizer=Adam(lr=0.005),
               metrics=['accuracy'])
 
 checkpoint_filepath = '../bed_posture/ckpt_3/4_class_deep-{}'.format(sub)
@@ -503,7 +503,7 @@ print(f'Training for subject {sub} ...')
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=30,
+          epochs=40,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0.2)
