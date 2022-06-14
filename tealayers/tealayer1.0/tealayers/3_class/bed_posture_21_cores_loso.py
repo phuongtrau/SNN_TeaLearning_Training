@@ -30,7 +30,7 @@ from tea import Tea
 # import random
 from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import cv2
 from output_bus import OutputBus
 from serialization import save as sim_save
@@ -165,12 +165,12 @@ for sub in ls_train_full:
 
   print('Test loss:', score[0])
   print('Test accuracy:', score[1])
-  if not os.path.exists("../mem_files/3_classes_21_cores_mem/{}".format(sub)):
-    os.makedirs("../mem_files/3_classes_21_cores_mem/{}".format(sub))
+  # if not os.path.exists("../mem_files/3_classes_21_cores_mem/{}".format(sub)):
+  #   os.makedirs("../mem_files/3_classes_21_cores_mem/{}".format(sub))
 
-  cores_sim = create_cores(model, 21 , neuron_reset_type=0,num_classes=4) 
+  # cores_sim = create_cores(model, 21 , neuron_reset_type=0,num_classes=4) 
 
-  write_cores(cores_sim,max_xy=(1,21),output_path="../mem_files/3_classes_21_cores_mem/{}".format(sub))
+  # write_cores(cores_sim,max_xy=(1,21),output_path="../mem_files/3_classes_21_cores_mem/{}".format(sub))
 
   # fold_no = fold_no + 1
 

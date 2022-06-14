@@ -841,9 +841,9 @@ class Mat_Dataset():
 
     self.samples = []
     self.labels = []
-
     for mat in mats:
       data = datasets[mat]
+      # print(data)
       self.samples.append(np.vstack([data.get(key)[0] for key in Subject_IDs]))
       self.labels.append(np.hstack([data.get(key)[1] for key in Subject_IDs]))
 

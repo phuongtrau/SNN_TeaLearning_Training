@@ -40,7 +40,7 @@ exp_i_data = helper.load_exp_i_supine("../../dataset/experiment-i")
 datasets = {"Base":exp_i_data}
 subjects = ["S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","S11","S12","S13"]
 
-sub="S13"
+sub="S3"
 
 subjects.remove(sub)
 random.seed(1)
@@ -465,7 +465,7 @@ model = Model(inputs=inputs, outputs=predictions)
 #     decay_rate=0.9)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(lr=0.00075),
+              optimizer=Adam(lr=0.00035),
               metrics=['accuracy'])
 
 checkpoint_filepath = '../bed_posture/ckpt_3/9_class_deep-{}'.format(sub)
@@ -480,7 +480,7 @@ model.load_weights("../bed_posture/ckpt_supine/9_class_deep-{}".format(sub))
 
 model.fit(x_train, y_train,
           batch_size=1024,
-          epochs=10,
+          epochs=50,
           verbose=1,
           callbacks=[model_checkpoint_callback],
           validation_split=0)
